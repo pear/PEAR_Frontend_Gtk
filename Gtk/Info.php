@@ -64,12 +64,16 @@ class PEAR_Frontend_Gtk_Info {
     function show($message) {
         $this->_message .= $message . "\n";
         $this->window->set_title("MESSAGE");
-        $this->label->set_text($this->_message);
+        $this->label->insert(NULL, NULL, NULL, $this->_message);
+        $this->label->set_line_wrap(false);
         $this->window->show();
-        $this->isShow = TRUE;
+        $this->isShow = TRUE; 
+        while(gtk::events_pending()) gtk::main_iteration();
+
     }
     
     function close() {
+        $this->label->delete_text(0,-1);
         $this->window->hide();
         $this->_message = "";
         return TRUE;

@@ -1927,6 +1927,8 @@ sdf
   <type>GTK_WINDOW_TOPLEVEL</type>
   <position>GTK_WIN_POS_MOUSE</position>
   <modal>True</modal>
+  <default_width>600</default_width>
+  <default_height>300</default_height>
   <allow_shrink>True</allow_shrink>
   <allow_grow>True</allow_grow>
   <auto_shrink>False</auto_shrink>
@@ -1984,11 +1986,12 @@ sdf
     </widget>
 
     <widget>
-      <class>GtkHBox</class>
-      <name>hbox11</name>
-      <border_width>23</border_width>
-      <homogeneous>False</homogeneous>
-      <spacing>8</spacing>
+      <class>GtkScrolledWindow</class>
+      <name>scrolledwindow18</name>
+      <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
+      <vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
+      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+      <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
       <child>
 	<padding>0</padding>
 	<expand>True</expand>
@@ -1996,36 +1999,11 @@ sdf
       </child>
 
       <widget>
-	<class>GtkHBox</class>
-	<name>_info_iconholder</name>
-	<homogeneous>False</homogeneous>
-	<spacing>0</spacing>
-	<child>
-	  <padding>0</padding>
-	  <expand>True</expand>
-	  <fill>True</fill>
-	</child>
-
-	<widget>
-	  <class>Placeholder</class>
-	</widget>
-      </widget>
-
-      <widget>
-	<class>GtkLabel</class>
+	<class>GtkText</class>
 	<name>_info_label</name>
-	<label>Prompt</label>
-	<justify>GTK_JUSTIFY_LEFT</justify>
-	<wrap>True</wrap>
-	<xalign>0</xalign>
-	<yalign>0</yalign>
-	<xpad>0</xpad>
-	<ypad>0</ypad>
-	<child>
-	  <padding>0</padding>
-	  <expand>True</expand>
-	  <fill>True</fill>
-	</child>
+	<sensitive>False</sensitive>
+	<editable>False</editable>
+	<text></text>
       </widget>
     </widget>
   </widget>

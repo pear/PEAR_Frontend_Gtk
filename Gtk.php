@@ -171,12 +171,7 @@ class PEAR_Frontend_Gtk extends PEAR_Frontend
      * @access private
      */
     var $_install; 
-    /**
-     * the class manages config tahs 
-     * @var object PEAR_Frontend_Gtk_Config
-     * @access private
-     */
-    var $_install; 
+ 
     /**
      * the class manages directory selection
      * @var object PEAR_Frontend_Gtk_DirSelect
@@ -503,7 +498,7 @@ class PEAR_Frontend_Gtk extends PEAR_Frontend
     * @param   string the command that was sent to result in this
     *
     */
-    function outputData($data,$command ){
+    function outputData($data,$command=''){
         switch ($command) {
             case 'config-show':
                 $this->_config->buildConfig($data['data']); 
@@ -512,8 +507,9 @@ class PEAR_Frontend_Gtk extends PEAR_Frontend
                 $this->_install->uninstallOutputData($data);
                 return;
             default:
-                echo "COMMAND : $command\n";
-                echo "DATA: ".serialize($data)."\n";
+                $this->_info->show($data['data']);
+                //echo "COMMAND : $command\n";
+                //echo "DATA: ".print_r($data,true)."\n";
         }
     }
 
