@@ -188,7 +188,6 @@ class PEAR_Frontend_Gtk_Install {
                 return;
                 
             case 'bytesread':
-            var_dump($params);
                 $this->fileProgressBar->set_percentage(
                     (float) ($params / $this->_activeDownloadSize));
                 while(gtk::events_pending()) gtk::main_iteration();
