@@ -24,7 +24,7 @@
     <version>0.1</version>
     <date>2002-05-27</date>
     <notes>Snapshot - dont expect it to work</notes>
-    <state>experimental</state>
+    <state>snapshot</state>
     <filelist>
       <dir name="/" baseinstalldir="PEAR/Frontend">
       	<file role="php">Gtk.php</file>
