@@ -521,7 +521,11 @@ class PEAR_Frontend_Gtk extends PEAR
                 echo "DATA: ".serialize($data)."\n";
         }
     }
-    
+
+    function log($msg) {
+        echo "LOG $msg"; 
+    }
+
     // {{{ displayLine(text)
 
     function displayLine($text)
