@@ -31,9 +31,18 @@
 
 
 class PEAR_Frontend_Gtk_Install {
-
+    /**
+    * The Main User interface object
+    * @var object PEAR_Frontend_Gtk
+    */
     var $ui; // main interface
     
+    /*
+    * Gtk Installer Constructor
+    *
+    * #TODO: most of this can be moved to the glade file!?
+    * @param object PEAR_Frontend_Gtk
+    */
     
     function PEAR_Frontend_Gtk_Install(&$ui) {
         // connect buttons?
@@ -43,7 +52,11 @@ class PEAR_Frontend_Gtk_Install {
         $this->ui->_widget_download_list->set_column_auto_resize(2,TRUE);
         $this->ui->_widget_done_button->connect('pressed',array(&$this,'_callbackDone'));
     }
-    
+    /* 
+    * Start the download process (recievs a list of package 'associative arrays'
+    * #TODO : recieve list of package objects to install/remove!
+    *
+    */
     function start($list) {
         
         $this->ui->_widget_pages->set_page(1);
@@ -72,12 +85,77 @@ class PEAR_Frontend_Gtk_Install {
         
         
     }
+    /* 
+    * GUI Callback - user presses the 'done button' 
+    */
     function _callbackDone() {
         $this->ui->_package_list->loadList();
         $this->ui->_widget_pages->set_page(0);
     }
-   
+    /**
+    * size of current file being downloaded
+    * @var int
+    * @access private
+    */
+    var $_activeDownloadSize =0;
+    /**
+    * Total number of files that are being downloaded
+    * @var int
+    * @access private
+    */
     
+    var $_downloadTotal=1;
+    /**
+    * How many files have been downloaded in this 'session'
+    * @var int
+    * @access private
+    */
+    var $_downloadPos=0;
+    
+    /*
+    * PEAR_Command Callback (relayed) - used by downloader
+    * @param string message type
+    * @param string message data
+    */
+    
+    function _downloadCallback($msg,  $params) {
+        
+        switch ($msg) {
+            case 'setup':
+                return;
+                
+            case 'saveas':
+                $this->ui->_widget_downloading_filename->set_text("Downloading {$params}");
+                $this->ui->_widget_downloading_total_progressbar->set_percentage(
+                    (float) ($this->_downloadPos/$this->_downloadTotal));
+                $this->_downloadPos++; 
+                $this->ui->_widget_downloading_total->set_text("Total {$this->_downloadPos}/{$this->_downloadTotal}");
+                while(gtk::events_pending()) gtk::main_iteration();
+                return;
+                
+            case 'start':
+                $this->_activeDownloadSize = $params;
+                $this->ui->_widget_downloading_file_progressbar->set_percentage(0);
+                while(gtk::events_pending()) gtk::main_iteration();
+                return;
+                
+            case 'bytesread':
+                $this->ui->_widget_downloading_file_progressbar->set_percentage(
+                    (float) ($params / $this->_activeDownloadSize));
+                while(gtk::events_pending()) gtk::main_iteration();
+                return;
+                
+            case 'done':
+                $this->ui->_widget_downloading_total_progressbar->set_percentage(
+                    (float) ($this->_downloadPos/$this->_downloadTotal));
+               
+            default: // debug - what calls this?
+                if (is_object($params)) $params="OBJECT";
+                echo "MSG: $msg ". serialize($params) . "\n";
+        }
+    }
+    
+
 }
 
 

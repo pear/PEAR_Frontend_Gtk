@@ -383,63 +383,14 @@ class PEAR_Frontend_Gtk extends PEAR
         $this->_widget_pages->set_page(2);
     }
     /*-------------------------------------Downloading --------------------------------*/
-    /**
-    * size of current file being downloaded
-    * @var int
-    * @access private
-    */
-    var $_activeDownloadSize =0;
-    /**
-    * Total number of files that are being downloaded
-    * @var int
-    * @access private
-    */
-    
-    var $_downloadTotal=1;
-    /**
-    * How many files have been downloaded in this 'session'
-    * @var int
-    * @access private
-    */
-    var $_downloadPos=0;
-    
-    /*
+     /*
     * PEAR_Command Callback - used by downloader
     * @param string message type
     * @param string message data
     */
     
     function _downloadCallback($msg,  $params) {
-         
-        switch ($msg) {
-            case 'setup':
-                return;
-            case 'saveas':
-                $this->_widget_downloading_filename->set_text("Downloading {$params}");
-                $this->_widget_downloading_total_progressbar->set_percentage($this->_downloadPos/$this->_downloadTotal);
-                $this->_downloadPos++; 
-                $this->_widget_downloading_total->set_text("Total {$this->_downloadPos}/{$this->_downloadTotal}");
-                while(gtk::events_pending()) gtk::main_iteration();
-       
-                return;
-            case 'start':
-                $this->_activeDownloadSize = $params;
-                $this->_widget_downloading_file_progressbar->set_percentage(0);
-                while(gtk::events_pending()) gtk::main_iteration();
-                return;
-            case 'bytesread':
-                $this->_widget_downloading_file_progressbar->set_percentage($params / $this->_activeDownloadSize);
-                while(gtk::events_pending()) gtk::main_iteration();
-                return;
-            case 'done':
-                
-                $this->_widget_downloading_total_progressbar->set_percentage($this->_downloadPos/$this->_downloadTotal);
-               
-            default:
-                if (is_object($params)) $params="OBJECT";
-                echo "MSG: $msg ". serialize($params) . "\n";
-        }
-        
+        $this->_install->_downloadCallback($msg,  $params);
     }
     
   
