@@ -109,6 +109,9 @@ class PEAR_Frontend_Gtk extends PEAR
     function _loadGlade() {
         
         $file = dirname(__FILE__).'/Gtk/installer.glade';
+        if (!class_exists('GladeXML')) 
+            return PEAR::raiseError('Glade is currently required for the installer to work, please see php GTK install instructions for more information',null,PEAR_ERROR_DIE);
+         
         $this->_glade = &new GladeXML($file);
         $data = implode('',file($file));
         preg_match_all('/\<name\>([^\<]+)\<\/name\>/',$data,$items);
