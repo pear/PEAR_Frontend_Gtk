@@ -49,7 +49,11 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             $this->_tokens[] = array($tag,$attribs);
             $this->_tokens[] = substr($b,strpos($b,'>')+1);
         }
-        // print_r($this->_tokens);
+        ob_start();
+        print_r($this->_tokens);
+        $test = ob_get_contents();
+        ob_end_clean();
+        $fh = fopen('/tmp/tokens', 'w'); fwrite($fh,$test); fclose($fh);
         //exit;
     }
     var $Start = FALSE; // start rering (eg. ignore headers)
@@ -69,7 +73,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         $this->_lines[0]['top'] =0;
         $this->_lines[0]['ascent'] =0;
         $this->_lines[0]['descent'] =0;
-        $this->_updateLine();
+        $this->_updateLine('','START');
         $this->_lines[$this->_line]['bottom'] =0;
         $this->_lines[0]['left'] = 10;
         $this->_lines[0]['right'] = $this->_area_x;
@@ -110,11 +114,27 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                     case 'TBODY':
                     
                     case 'LI':
-                    case 'UL':
                     
                     case 'IMG':
                     
                     case '!--':
+                        break;
+                    
+                    case 'UL':
+                        if ($method ==  'push') {
+                            $this->_nextLine('UL'); // clear old line...
+                            $this->_TDaddLine('UL'); 
+                            $this->_lines[$this->_line]['indent'] = 20;
+                        } else { 
+                            $this->_nextLine('UL'); // clear old line...
+                            $this->_TDaddLine('UL');
+                            $this->_lines[$this->_line]['indent'] = 0;
+                            $this->_nextLine('UL2'); // clear old line...
+                            $this->_updateLine('','UL2');
+                            $this->_TDaddLine('UL');
+                            $this->_lines[$this->_line]['indent'] = 0;
+                          
+                        }
                         break;
                         
                         
@@ -123,7 +143,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                         if ($method == 'push') { // start
                             // move us down abit and start a new row
                             $this->_nextLine('CLEARPRETABLE'); // clear old line...
-                            $this->_TDaddLine(); // add it to the table?
+                            $this->_TDaddLine('TABLE start'); // add it to the table?
                             $this->tables[$pos]['from last']   = serialize($this->_lines[$this->_line]); 
                             
                             $this->tables[$pos]['pos'] = $pos;
@@ -132,7 +152,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                             $this->tables[$pos]['startright'] =  $this->_lines[$this->_line]['right']; 
                             $this->tables[$pos]['top']   = $this->_lines[$this->_line]['top']; 
                             $this->_nextLine('TABLE'); // new line object that contains the table information.
-                            $this->_TDaddLine();
+                            $this->_TDaddLine('TABLE');
                             $this->_lines[$this->_line]['top'] = $this->tables[$pos]['top'];
                             
                             
@@ -166,7 +186,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                             
                              
                             $this->_TABLErecalc($table,$pos);
-                            $this->_TABLEmovelines($table);
+                            
                             
                             
                             // update the container line
@@ -179,7 +199,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                             
                             //$this->_updateLine();
                             $this->_nextLine('ENDTABLE - clear'); // start a new line
-                            $this->_TDaddLine();
+                            $this->_TDaddLine('TABLE END');
                             
                             
                             
@@ -218,7 +238,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                             $this->push($item[0],$pos,@$item[1]); 
                             
                             $this->_nextLine("TD - start");
-                            $this->_TDaddLine();
+                            $this->_TDaddLine("TD - start");
                                                         
                             $this->_lines[$this->_line]['left'] = $this->td[$pos]['left'];
                             $this->_lines[$this->_line]['right'] = $this->td[$pos]['right'];
@@ -233,8 +253,11 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                             $this->td[$pos]['bggc'] =$this->_bggc;
                             
                         } else {
+                            // if the td is before the table - dont over pop the stack
+                            if ($this->inID('TD') < $this->inID('TABLE'))
+                               break;
                             $this->_nextLine('TD - END');
-                            $this->_TDaddLine();
+                            $this->_TDaddLine('TD - END');
                             $td = $this->pop('TD',$pos);
                         }
                         
@@ -246,7 +269,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                         break; 
                     case 'PRE':
                         //$this->output($item[0]);
-                        $this->linebr($item[0]);
+                        $this->linebr($this->_tokens[$pos][0],$pos);
                         $this->$method($item[0],$pos);
                         
                     case 'SELECT': // hide this stuff
@@ -261,7 +284,8 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                         break;
                         
                     case 'SMALL':
-                        $item[0] = "H6";
+                        $this->$method('H6',$pos,$item[0]{1});
+                        break;
                     case 'H1':
                     case 'H2':
                     case 'H3':
@@ -269,20 +293,28 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                     case 'H5':
                     case 'H6':
                         //$this->output($item[0]);
-                        $this->linebr();
+                        //if ($method == 'pop') 
+                            $this->linebr($this->_tokens[$pos][0],$pos);
                         $this->$method('H',$pos,$item[0]{1});
+                        //if ($method == 'push') 
+                        //    $this->linebr($this->_tokens[$pos][0],$pos);
                         break;
                     case 'DIV': // ?? this stuf could contain formating?
                     case 'FONT':
                     case 'TR':
-                    case 'A':
                         $this->$method($item[0],$pos,@$item[1]);
+                        break;
+                    case 'A':
+                        $ret = $this->$method($item[0],$pos,@$item[1]);
+                         
+                        
                         break;
                     
                     case 'BR':
                     case 'P': 
                         //$this->output($item[0]);
-                        $this->linebr($item[0]);
+                        //if ($method == 'push')
+                        $this->linebr($this->_tokens[$pos][0],$pos);
                         break;
                     default:
                         echo "\nNOT HANDLED: -{$item[0]}-\n";
@@ -295,13 +327,14 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             // strings only!
             if ($t = $this->inID('TABLE')) 
                 if ($t > ($td = $this->inID('TD'))) {
-                    if (trim($item))
-                        echo "TABLE : $t, TD: $td skipping\n";
-                    continue;
+                    if (trim($item)) {
+                        echo "TABLE : $t, TD: $td skipping $item\n";
+                        exit;
+                    }
                 }
             $this->output($item,$pos);
         }
-        $this->linebr();   
+        $this->linebr('LAST LINE');   
         
         $this->_area_y = $this->_lines[$this->_line]['bottom'] ;
         $this->layout->set_size($this->_area_x , $this->_area_y );
@@ -315,8 +348,8 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         foreach(array_keys($this->_textParts) as $id)
             $this->_drawPart($id);
         
-        print_r($this->tables);
-        //print_r($this->_textParts);
+        //print_r($this->tables);
+        print_r($this->_lines);
 
     }
     
@@ -343,7 +376,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             
         if ($this->check  && preg_match("/^(".$this->check.")$/",$what)) { 
             echo "\nPUSH:$what:";print_r($this->stack[$what]);
-            echo "\nCUR:{$this->cur[$what]}";
+            echo "\nCUR:{$this->cur[$what]}\n";
         }
     }
     function pop($what,$pos=0,$attributes=array()) { // pull a token or attributes off the stack
@@ -357,7 +390,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         /* debugging*/
         if ($this->check  && preg_match("/^(".$this->check.")$/",$what)) { 
             echo "\nPOP:$what:AT$pos:";print_r($this->stack[$what]);
-            echo "\nCUR:{$this->cur[$what]}";
+            echo "\nCUR:{$this->cur[$what]}\n";
         }
         return $id;
     }
@@ -397,9 +430,18 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         $args = array();
         if (preg_match("/\stext\=[\"\']?(\#[0-9A-F]+)[\"\']?/mi",' '.$attributes,$args))
             $this->$method("FGCOLOR",$pos,$args[1]);
-        
+        $args = array();
         if (preg_match("/\sclass\=[\"\']?([A-Z]+)[\"\']?/mi",' '.$attributes,$args))
             $this->_stackStyle($method,$pos,$args[1]);
+            
+        if (preg_match("/\shref\=[\"\']?([^\"\']+)[\"\']?/mi",' '.$attributes)) {
+            $this->$method('FGCOLOR',$pos,'blue');
+            $this->$method('U',$pos,":");
+        }    
+        $args = array();
+        if (preg_match("/\salign\=[\"\']?([a-z]+)[\"\']?/mi",' '.$attributes,$args))
+            $this->$method("ALIGN",$pos,strtolower($args[1]));
+        
         
     } 
     function _stackStyle($method,$pos,$class) { //add/remove from stack class='xxx' (not implemented yet)
@@ -422,14 +464,21 @@ class PEAR_Frontend_Gtk_WidgetHTML {
     /*-----------------------------TEXT StuffSTUFF --------------------------------*/
     
     var $_textParts = array(); // associative array of all the text parts to be drawn
-    function linebr($item='') { // add a line break
-        if (($item == "P") && ($this->lastbr == "P")) return;
+    function linebr($item='',$reason) { // add a line break
+        //
+        if ($item == "/P") {
+            echo "LASTBR: {$this->lastbr} : CURRENT TEXTPARTS" . count($this->_textParts) . "\n";
+            return;
+        }
+            //&& ($this->lastbr == ("P". count($this->_textParts)))) return;
         //if ($item && $this->lastbr && ($this->lastbr != $item)) return;
         //$this->widget->insert($this->_font,$this->_fgcolor,$this->bg_color,":$item:\n");
+        //$this->outputTAG($item);
+        $this->_makeFont();
         $this->_nextLine('LINEBREAK');
         $this->_updateLine('','LINEBR');
-        $this->_TDaddLine();
-        $this->lastbr = $item;
+        $this->_TDaddLine("LINE BR $reason");
+        $this->lastbr = count($this->_textParts);
     }
     function output($string,$pos) { // output a string
         
@@ -457,7 +506,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             
         $this->_makeFont('-adobe-helvetica-bold-r-normal-*-*-80-*-*-p-*-iso8859-1');
         $this->_makeColors("#000000","#FFFF00",FALSE);
-        $this->outputTEXT("<{$tag}>");
+        $this->outputTEXT("<{$tag}>","tag");
     } 
     function outputTEXT($string,$pos) { // really add to $this->_textParts a text item
         
@@ -490,14 +539,17 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                     'bggc' =>   $this->_bggc,
                     'gc'   =>   $this->_gc,
                     'font' =>   $this->_font,
+                    'u'    =>   $this->inID('U'),
                 );
+                $this->_lines[$this->_line]['textwidth'] = @$this->_lines[$this->_line]['textwidth'] + $data[1];
+                $this->_lines[$this->_line]['align'] = $this->in('ALIGN');
                 //$widget->show();
                 $this->_updateLine("POS:$pos", 'outputTEXT2');
                 $this->_lines[$this->_line]['x'] = $data[0] + $data[1];   
                 if ($c != $i) {
                     $this->_nextLine('TEXTout');
                     $this->_updateLine('','OutputTEXT NEWLINE');
-                    $this->_TDaddLine();
+                    $this->_TDaddLine('TEXT out');
                 }
             }
         } 
@@ -518,7 +570,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             $this->_updateLine($line, 'outputPRE');
             $this->outputTEXT($line,$pos);
             $this->_nextLine('PREout');
-            $this->_TDaddLine();
+            $this->_TDaddLine('PRE out');
         }
         
     }
@@ -530,18 +582,24 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         //exit;
         gdk::draw_rectangle($this->pixmap,
             $this->_gcs[$part['bggc']],true,    
-            $part['left'],  $line['top'], 
+            $part['left'] + $line['leftshift'],  $line['top'], 
             $part['width'], $line['height']
         );
                 
         gdk::draw_text($this->pixmap, 
             $this->_fonts[$part['font']], $this->_gcs[$part['gc']] , 
-            $part['left'],  $line['y'], 
+            $part['left'] + $line['leftshift'],  $line['y'], 
             $part['string'], strlen($part['string'])
         );
+        if ($part['u']) 
+            gdk::draw_rectangle($this->pixmap,
+                $this->_gcs[$part['gc']],true,    
+                $part['left'] + $line['leftshift'],  $line['top'] + $line['height'] -1, 
+                $part['width'], 1
+            );
         $this->drawing_area->draw(
             new GdkRectangle(
-                $part['left'],  $line['bottom'], 
+                $part['left'] + $line['leftshift'],  $line['bottom'], 
                 $part['width'], $line['height']
             )
         );
@@ -654,6 +712,14 @@ class PEAR_Frontend_Gtk_WidgetHTML {
     function _calcLine($l) { // create line's y and bottom based on top + font stuff
         $this->_lines[$l]['y'] = $this->_lines[$l]['top'] + $this->_lines[$l]['ascent'];
         $this->_lines[$l]['bottom'] = $this->_lines[$l]['top'] + $this->_lines[$l]['height'];
+        $this->_lines[$l]['leftshift'] = $this->_lines[$l]['indent'];
+        if ($this->_lines[$l]['align'] == 'right')
+            $this->_lines[$l]['leftshift'] = $this->_lines[$l]['right'] - $this->_lines[$l]['left'] - $this->_lines[$l]['textwidth'];
+        if ($this->_lines[$l]['align'] == 'center')
+            $this->_lines[$l]['leftshift'] = ($this->_lines[$l]['right'] - $this->_lines[$l]['left'] - $this->_lines[$l]['textwidth']) /2;
+        
+        
+        
     }
     function _nextLine($reason) {  // create a new line (set up left/right,x top,y... etc.  
         
@@ -664,10 +730,12 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             exit;
         }
         
-        $this->_lines[$this->_line]['left'] = $this->_lines[$this->_line-1]['left'];
-        $this->_lines[$this->_line]['right_from_last'] = $this->_lines[$this->_line-1]['right'];
-        $this->_lines[$this->_line]['right'] = $this->_lines[$this->_line-1]['right'];
-        $this->_lines[$this->_line]['x'] =$this->_lines[$this->_line]['left'];
+        $this->_lines[$this->_line]['left']            =  $this->_lines[$this->_line-1]['left'];
+        $this->_lines[$this->_line]['indent']          = @$this->_lines[$this->_line-1]['indent'];
+        $this->_lines[$this->_line]['indentfromlast']  = @$this->_lines[$this->_line-1]['indent'];
+        $this->_lines[$this->_line]['right_from_last'] =  $this->_lines[$this->_line-1]['right'];
+        $this->_lines[$this->_line]['right']           =  $this->_lines[$this->_line-1]['right'];
+        $this->_lines[$this->_line]['x']               =  $this->_lines[$this->_line]['left'];
         
         
         $this->_lines[$this->_line]['top'] = $this->_lines[$this->_line-1]['bottom'];
@@ -677,16 +745,17 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         $this->_lines[$this->_line]['ascent'] =0;
         $this->_lines[$this->_line]['descent'] =0;
         $this->_lines[$this->_line]['height'] =0;
+        $this->_lines[$this->_line]['align'] ='left';
         //$this->_updateLine();
         $this->_calcLine($this->_line);
     
     }
     
-    function _TDaddLine() { // add a line to a block if it is inside one
+    function _TDaddLine($reason = '') { // add a line to a block if it is inside one
         if ($id = $this->inID('TD')) {
             $table = $this->inID('TABLE');
             if ($table > $id) {
-                echo "TRIED TO ADD TD:$id to TABLE:$table";
+                echo "TRIED $reason TO ADD TD:$id to TABLE:$table\n";
                 return;
             }
             if (!isset($this->td[$id]['lines'])) {
@@ -1240,6 +1309,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         }
         $this->tables[$id]['height'] = $bottom - $this->tables[$id]['top'];
         $this->tables[$id]['bottom'] = $bottom;
+        $this->_TABLEmovelines($id);
         //print_r($this->tables); exit;
         //if ($end > 160) {
          //    print_r($this->tables);
@@ -1268,11 +1338,13 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                 if (@$subtable = $this->_lines[$line]['table']) {
                     $this->tables[$subtable ]['top'] = $top;
                     $this->_TABLErecalc($subtable, $this->tables[$subtable ]['end']);
-                    $this->_TABLEmovelines($subtable);
+                      
                 }
                 $top = $this->_lines[$line]['bottom'];
             }
         }
+        //$this->tables[$table]['bottom'] = $top;
+        //$this->tables[$table]['height'] = $top - $this->tables[$table]['top'] ;
     }
     
 }
@@ -1284,9 +1356,9 @@ error_reporting(E_ALL);
 $t = new PEAR_Frontend_Gtk_WidgetHTML;
  //$t->test(dirname(__FILE__).'/tests/test3.html');
 //$t->test(dirname(__FILE__).'/tests/packages.templates.it.html');
-//$t->test('http://pear.php.net/manual/en/packages.templates.it.php');
+$t->test('http://pear.php.net/manual/en/packages.templates.it.php');
 //$t->test('http://docs.akbkhome.com/PHPcodedoc/PHP_CodeDoc.html');
-$t->test('http://www.php.net/');
+//$t->test('http://www.php.net/');
 $t->tokenize();
 $t->testInterface();
 //$t->build();
