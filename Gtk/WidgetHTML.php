@@ -72,11 +72,13 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             $this->_tokens[] = array($tag,$attribs);
             $this->_tokens[] = substr($b,strpos($b,'>')+1);
         }
+        /*
         ob_start();
         print_r($this->_tokens);
         $test = ob_get_contents();
         ob_end_clean();
         $fh = fopen('/tmp/tokens', 'w'); fwrite($fh,$test); fclose($fh);
+        */
         //exit;
     }
     var $Start = FALSE; // start rering (eg. ignore headers)
@@ -1019,7 +1021,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
     /* ------------------------------ BASIC WIDGET STUFF ------------------*/
     //
     
-    var $_area_x= 400; // default X width of Widget
+    var $_area_x= 600; // default X width of Widget
     var $_area_y= 400; // default Y width of Widget
     var $layout; // GtkLayout
     
@@ -1031,6 +1033,9 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         $this->scrolledwindow = &new GtkScrolledWindow();
         $hadj = $this->scrolledwindow->get_hadjustment();
         $vadj = $this->scrolledwindow->get_vadjustment();
+        $hadj->connect('value-changed', array(&$this,'_LayoutScrolled'));
+        $vadj->connect('value-changed', array(&$this,'_LayoutScrolled'));
+
         $this->layout =  &new GtkLayout($hadj,$vadj); 
         $this->layout->set_size($this->_area_x,$this->_area_y);
         $this->layout->show();
@@ -1086,7 +1091,10 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         
        
     }                  
-     
+    function _LayoutScrolled() { // windows bug fix
+        $this->layout->queue_draw();
+    }
+    
     
     var $pixmap; // the pixmap that everything gets drawn on
     function _DrawingAreaCallbackConfigure($widget, $event) { // the callback to create the pixmap & start building
@@ -1624,7 +1632,7 @@ error_reporting(E_ALL);
 $window = &new GtkWindow();
 $window->set_name('Test Input');
 $window->set_position(GTK_WIN_POS_CENTER);
-$window->set_usize(400,400);
+$window->set_usize(600,400);
 $window->connect_object('destroy', array('gtk', 'main_quit'));
 $vbox = &new GtkVBox();
 $window->add($vbox);
