@@ -23,7 +23,9 @@ require_once "PEAR.php";
 require_once "PEAR/Frontend/Gtk/Packages.php";
 require_once "PEAR/Frontend/Gtk/Summary.php";
 require_once "PEAR/Frontend/Gtk/Install.php";
-
+require_once "PEAR/Frontend/Gtk/Config.php";
+require_once "PEAR/Frontend/Gtk/DirSelect.php";
+require_once "PEAR/Frontend/Gtk/Info.php";
 
 /**
  * Core Gtk Frontend Class
@@ -77,6 +79,13 @@ class PEAR_Frontend_Gtk extends PEAR
             dl('php_gtk.' . (OS_WINDOWS ? 'dll' : 'so'));
         }
         //echo "LOADED?";
+        $this->config = &PEAR_Config::singleton('','');
+        $this->_summary      = &new PEAR_Frontend_Gtk_Summary($this);
+        $this->_install      = &new PEAR_Frontend_Gtk_Install($this);
+        $this->_packages     = &new PEAR_Frontend_Gtk_Packages($this);
+        $this->_config       = &new PEAR_Frontend_Gtk_Config($this);
+        $this->_dirselect    = &new PEAR_Frontend_Gtk_DirSelect($this);
+        $this->_info         = &new PEAR_Frontend_Gtk_Info($this);
         $this->_loadGlade();
         $this->_initInterface();
     }
@@ -101,16 +110,35 @@ class PEAR_Frontend_Gtk extends PEAR
         $this->_glade = &new GladeXML($file);
         $data = implode('',file($file));
         preg_match_all('/\<name\>([^\<]+)\<\/name\>/',$data,$items);
-        foreach ($items[1] as $widgetname) {
+        foreach ($items[1] as $widgetname) {   
+            $args = array();
+            if (preg_match('/^(_install|_packages|_summary|_config|_dirselect|_info)_(.*)$/',$widgetname,$args)) {
+                $obj = $args[1];
+                $varname= $args[2];
+                //echo "ASSIGN $obj $varname to $widgetname\n";
+                $this->$obj->$varname = $this->_glade->get_widget($widgetname);
+                continue;
+            }
             $varname = "_widget_".$widgetname;
             $this->$varname = $this->_glade->get_widget($widgetname);
         }
         $items = array();
         preg_match_all('/\<handler\>([^\<]+)\<\/handler\>/',$data,$items); 
         //print_r($items[1]);
-        foreach ($items[1] as $handler)  
+        foreach ($items[1] as $handler)  {
+            $args = array();
+            if (preg_match('/^(_install|_packages|_summary|_config|_dirselect|_info)_(.*)$/',$handler,$args)) {
+                $obj = $args[1];
+                $method= $args[2];
+                //echo "CONNECT $obj $method to $handler\n";
+                if (!method_exists($this->$obj,$method)) 
+                    exit; // programming error!
+                $this->_glade->signal_connect($handler ,array(&$this->$obj,$method));
+                continue;
+            }
             if (method_exists($this,$handler))
                 $this->_glade->signal_connect( $handler ,array(&$this,$handler));
+        }
 
         
         
@@ -135,20 +163,36 @@ class PEAR_Frontend_Gtk extends PEAR
      */
     var $_install; 
     /**
+     * the class manages config tahs 
+     * @var object PEAR_Frontend_Gtk_Config
+     * @access private
+     */
+    var $_install; 
+    /**
+     * the class manages directory selection
+     * @var object PEAR_Frontend_Gtk_DirSelect
+     * @access private
+     */
+    var $_dirselect; 
+    
+     /**
+     * the class manages simple info prompts
+     * @var object PEAR_Frontend_Gtk_Info
+     * @access private
+     */
+    var $_info; 
+    
+    /**
     * Load and initialize the sub modules
     *
     * @access private
     */ 
+    
+    
     function _initInterface() {
         // must be a better way - still needs to read -c -C optss
-        $this->config = &PEAR_Config::singleton('','');
-        
         // initialize child objects
-        
-        $this->_packages     = &new PEAR_Frontend_Gtk_Packages($this);
-        $this->_summary      = &new PEAR_Frontend_Gtk_Summary($this);
-        $this->_install      = &new PEAR_Frontend_Gtk_Install($this);
-        
+      
         $this->_widget_window->connect_after('realize',array(&$this,'_callbackWindowConfigure'));
         $this->_widget_window->connect_after('configure_event',array(&$this,'_callbackWindowConfigure'));
 
@@ -184,12 +228,16 @@ class PEAR_Frontend_Gtk extends PEAR
         $this->_setStyle('config_button','#000000','#7b7d7a');
         $this->_setStyle('documentation_button','#000000','#7b7d7a');
         
+        /* package stuff */
+         
+        $this->_packages->loadPackageList();
+        
         $this->_setStyle('black_bg1','#FFFFFF','#000000',TRUE);
         $this->_setStyle('black_bg2','#FFFFFF','#000000',TRUE);
         $this->_setStyle('black_bg3','#FFFFFF','#000000',TRUE);
         $this->_setStyle('black_bg4','#FFFFFF','#000000',TRUE);
         
-        $this->_setStyle('download_list','#000000','#FFFFFF',TRUE);
+        //$this->_setStyle('download_list','#000000','#FFFFFF',TRUE);
         $this->_setStyle('close_details','#FFFFFF','#000000',FALSE);
         
         // sort out the text.
@@ -236,7 +284,7 @@ class PEAR_Frontend_Gtk extends PEAR
         
         /* configuration loading */
         
-        $this->_loadConfig();
+        $this->_config->loadConfig();
        
         $this->_setStyle('config_logo','#000000','#339900',TRUE);
         $this->_setStyle('config_logo_text','#FFFFFF','#339900'); 
@@ -259,7 +307,7 @@ class PEAR_Frontend_Gtk extends PEAR
     */ 
     
     function _loadButton($widgetname, $icon) {
-        echo $widgetname;
+        //echo $widgetname;
         $widget_fullname = "_widget_". $widgetname;
         $widget = &$this->$widget_fullname;
         
@@ -297,7 +345,7 @@ class PEAR_Frontend_Gtk extends PEAR
     * @access private
     */ 
     function _setStyle($widgetname,$fgcolor='',$bgcolor='',$copy=FALSE) {
-        echo "SET: $widgetname: $fgcolor/$bgcolor ". ((int) $copy) . "\n";
+        //echo "SET: $widgetname: $fgcolor/$bgcolor ". ((int) $copy) . "\n";
         $widget_fullname = "_widget_". $widgetname;
         $widget = &$this->$widget_fullname;
         if ($copy) {
@@ -366,22 +414,11 @@ class PEAR_Frontend_Gtk extends PEAR
         }
     }
      
-    /*
-    * Menu Callback - expand all
-    */
-    function on_expand_all_activate() {
-        $this->_packages->widget->expand_recursive();
-    }
-    /*
-    * Menu Callback - colllapse all
-    */
-    function on_collapse_all_activate() {
-        $this->_packages->widget->collapse_recursive();
-    }
+  
     /*
     * Menu Callback - Exit/Quit
     */
-    function on_quit() {
+    function _onQuit() {
         gtk::main_quit();
         exit;
     }
@@ -409,374 +446,9 @@ class PEAR_Frontend_Gtk extends PEAR
         $this->_install->_downloadCallback($msg,  $params);
     }
     
-  
-    /*---------------- Configuration Building stuff -----------------------*/
-
-    /**
-    * Build the widgets based on the return 'data' array from config-show
-    *
-    * @param array see config-show for more details.
-    */
-    function _buildConfig(&$array) {
-        if (!$array) return;
-        foreach ($array as $group=>$items) 
-            foreach ($items as $v) {
-                $this->_buildConfigItem($v[1],$v[2]);
-            }
-
-    }
-    /**
-    * Build the widgets for a configuration item
-    *
-    * @param string  configuration 'key'
-    * @param string  configuration 'value'
-    */
-    function _buildConfigItem($k,$v) {
-        echo "BUIDLING CONF ITME $k $v\n";
-        $group = $this->config->getGroup($k);
-        $gtktable =  $this->_getConfigTab($group);
-        $prompt = $this->config->getPrompt($k);
-        $gtklabel = &new GtkLabel();
-        $gtklabel->set_text($prompt);
-        $gtklabel->set_justify(GTK_JUSTIFY_LEFT);
-        $gtklabel->set_alignment(0.0, 0.5);
-        $gtklabel->show();
-        $r = $gtktable->nrows;
-        $gtktable->attach($gtklabel, 0, 1, $r, $r+1, GTK_FILL,GTK_FILL);
-        if ($v == '<not set>') 
-            $v = '';
-        
-        $type = $this->config->getType($k);
-        switch ($type) {
-            case 'string':
-            case 'password':
-            case 'int': // umask: should really be checkboxes..
-                $gtkentry = &new GtkEntry();
-                $gtkentry->set_text($v);
-                
-                $gtkentry->connect_object_after('enter_notify_event',
-                    array(&$this,'_setConfigHelp'),$this->config->getDocs($k));
-                $gtkentry->connect_object_after('changed', array(&$this,'_ActivateConfigSave'));
-                if ($type == 'password')
-                    $gtkentry->set_visibility(FALSE);
-                $gtkentry->show();
-                $gtktable->attach($gtkentry, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
-                break;
-            case 'directory':    
-                $gtkentry = &new GtkEntry();
-                $gtkentry->set_text($v);
-                $gtkentry->set_editable(FALSE);
-                $gtkentry->connect_object_after('enter_notify_event',
-                    array(&$this,'_setConfigHelp'),$this->config->getDocs($k));
-                // store in object data the configuration tag
-                $gtkentry->set_data('key',$k);
-                $gtkentry->show();
-                $gtktable->attach($gtkentry, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
-                $gtkbutton = &new GtkButton('...');
-                $gtkbutton->connect_object_after('clicked', array(&$this,'_onDirSelect'),$gtkentry);
-                $gtkbutton->show();
-                $gtktable->attach($gtkbutton, 2, 3, $r, $r+1, GTK_SHRINK,GTK_SHRINK);
-                break;
-            case 'set':
-                $options = $this->config->getSetValues($k);
-                $gtkmenu = &new GtkMenu();
-                $items = array();
-                $sel = 0;
-                foreach($options as $i=>$option) {
-                    $items[$i] = &new GtkMenuItem($option);
-                    //$items[$i]->connect('activate', 'echo_activated', $labels[$i], $pos[$i], 
-                    $gtkmenu->append($items[$i]);
-                    if ($option == $v) 
-                        $sel = $i;
-                }
-                $gtkmenu->set_active($sel);
-                $gtkmenu->show_all();
-                $gtkoptionmenu = &new GtkOptionMenu();
-                $gtkoptionmenu->set_menu($gtkmenu);
-                $gtkoptionmenu->connect_object_after('enter_notify_event',
-                    array(&$this,'_setConfigHelp'),$this->config->getDocs($k));
-              
-                $gtkoptionmenu->show();
-                $gtktable->attach($gtkoptionmenu, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
-                break;
-            // debug: shourd  really be 
-            case 'integer': // debug : should really be a set?
-                $gtkadj = &new GtkAdjustment($v, 0.0, 3.0, 1.0, 1.0, 0.0);
-                $gtkspinbutton = &new GtkSpinButton($gtkadj);
-                $gtkspinbutton->show();
-                $gtkspinbutton->connect_object_after('enter_notify_event',
-                    array(&$this,'_setConfigHelp'),$this->config->getDocs($k));
-            
-                $gtktable->attach($gtkspinbutton, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
-                break;
-            default:
-                echo "$prompt : ". $this->config->getType($k) . "\n";    
-        }
-        
-    }
-    /**
-    * Show the help text for a widget
-    *
-    * @param  object gtkevent            name of group tab
-    * @param  string                     help text
-    */
-    function _setConfigHelp($event,$string) {
-        $this->_widget_config_help->set_text($string);
-    }
-    /**
-    * The GtkTables relating to the groups
-    *
-    * @var array  associative array of groupname -> gtktable
-    * @access private
-    */
-    var $_configTabs = array(); // associative array of configGroup -> GtkTable
-    /**
-    * Get (or Make) A 'Group' Config Tab on the config notebook
-    *
-    * @param  string            name of group tab
-    * @param  string            no idea yet!
-    * @return object GtkTable   table which config elements are added to.
-    */
-    function &_getConfigTab($group) {
-        if (@$this->_configTabs[$group]) 
-            return $this->_configTabs[$group];
-        $this->_configTabs[$group] = &new GtkTable();
-        $this->_configTabs[$group]->set_row_spacings(10);
-        $this->_configTabs[$group]->set_col_spacings(10);
-        $this->_configTabs[$group]->set_border_width(15);
-        $this->_configTabs[$group]->show();
-        $gtklabel = &new GtkLabel($group);
-
-        $gtklabel->show();
-        $this->_widget_config_notebook->append_page($this->_configTabs[$group],$gtklabel);
-        return $this->_configTabs[$group];
-    }
-    /**
-    * Load Configuration into widgets (Initialize)
-    *
-    * Clear current config tabs, and calls the Command Show-config
-    *
-    * @param  object getbutton  from the reset button!
-    * @param  string            no idea yet!
-    */
-    function _loadConfig($widget=NULL,$what=NULL) {
-        if ($this->_configTabs) 
-            foreach (array_keys($this->_configTabs) as $k) {
-                $page = $this->_widget_config_notebook->page_num($this->_configTabs[$k]);
-                $this->_widget_config_notebook->remove_page($page);
-                $this->_configTabs[$k]->destroy();
-            }
-        
-        // delete any other pages;
-        if ($widget = $this->_widget_config_notebook->get_nth_page(0)) {
-            $this->_widget_config_notebook->remove_page(0);
-            $widget->destroy();
-        }
-        $this->_configTabs = array();
-        $cmd = PEAR_Command::factory('config-show',$this->config);
-        $cmd->ui = &$this;
-        $cmd->run('config-show' ,'', array());
-        $this->_widget_config_save->set_sensitive(FALSE); 
-        $this->_widget_config_reset->set_sensitive(FALSE);
-    }
+     /*---------------- Dir Seleciton stuff -----------------------*/
     
-    
-    /**
-    * Make the Save and reset buttons pressable.
-    *
-    * @access private
-    */
-    function _ActivateConfigSave() {
-        $this->_widget_config_save->set_sensitive(TRUE); 
-        $this->_widget_config_reset->set_sensitive(TRUE);
-    }
-    
-    /*---------------- Dir Seleciton stuff -----------------------*/
-    
-    /**
-    * Currently active widget to save result into (eg. gtkentry)
-    *
-    * @var object gtkentry 
-    * @access private
-    */
-    var $_DirSelectActiveWidget = NULL;
-    /**
-    * Display the Directory selection dialog
-    *
-    * Displays the directory dialog, fills in the data etc.
-    * 
-    * @param   object gtkentry   The text entry to fill in on closing
-    *
-    */
-    function _onDirSelect($widget) {
-        // set the title!!
-        $this->_DirSelectActiveWidget = &$widget;
-        $prompt = 'xxx';
-        $prompt = $this->config->getPrompt($widget->get_data('key'));
-        $this->_widget_dir_selection->set_title($prompt);
-        
-        $curvalue = $widget->get_text();
-        // load the pulldown
-        $this->_DirSelectSetDir(dirname($curvalue), basename($curvalue));
-        $this->_widget_dir_selection_entry->set_text($curvalue);
-        $this->_widget_dir_selection->show();
-    }
-    
-    /**
-    * Associated array of Row -> directory name
-    *
-    * It could be possible to get the row string using gtk calls......
-    *
-    * @var array
-    * @access private
-    */
-    var $_DirSelectRows = array();
-    
-    /**
-    * Load the directories into the directory list/pulldown etc.
-    *
-    * Loads the information into the popup / list of directories
-    * TODO: Windows A:D: etc. drive support  
-    *
-    * @param  string $directory name of directory to browse
-    * @param  string $file      name of file to select in list.
-    *
-    */
-    function _DirSelectSetDir($directory, $file='.') {
-        $parts = explode(DIRECTORY_SEPARATOR, $directory);
-        $disp = array();
-        $i=0;
-        $items = array();
-        $gtkmenu = &new GtkMenu();
-        foreach($parts as $dirpart) {
-            $disp[] = $dirpart;
-            $dir = implode(DIRECTORY_SEPARATOR,$disp);
-            if (!$dir && DIRECTORY_SEPARATOR == '/') $dir = '/';
-            if (!$dir) continue;
-            $items[$i] = &new GtkMenuItem($dir);
-            $items[$i]->connect_object_after('activate', array(&$this,'_DirSelectSetDir'),$dir);
-            $gtkmenu->append($items[$i]);
-            $i++;
-        }    
-        $gtkmenu->set_active($i-1);
-        $gtkmenu->show_all();
-        $this->_widget_dir_selection_optionmenu->set_menu($gtkmenu);
-        $base = $directory;
-        
-        $this->_widget_dir_selection_clist->select_row(0,0);
-        $this->_widget_dir_selection_clist->freeze();
-        $this->_widget_dir_selection_clist->clear();
-        
-        clearstatcache();
-        $dh = opendir($base);
-        $dirs = array();
-        while (($dir = readdir($dh)) !== FALSE) {
-            if (!is_dir($base.DIRECTORY_SEPARATOR.$dir)) continue;
-            $dirs[] = $dir;
-        }
-        sort($dirs);
-        $this->_DirSelectRows = array();
-        $sel =0;
-        $i=0;
-        foreach($dirs as $dir) {
-            $this->_widget_dir_selection_clist->append(array($dir)); 
-            $this->_DirSelectRows[] = realpath($base.DIRECTORY_SEPARATOR.$dir);
-            if ($dir == $file)
-                $sel = $i;
-            $i++;
-        }
-        $this->_widget_dir_selection_clist->thaw();  
-        if ($file != '.') {
-            
-            $this->_widget_dir_selection_clist->select_row($sel,0);
-            $this->_widget_dir_selection_clist->moveto($i,0,0,0);
-            $this->_widget_dir_selection_entry->set_text($directory);
-        } else {
-            
-            $this->_DirListBlockSel = TRUE;
-            $this->_widget_dir_selection_clist->select_row(0,0);
-             $this->_DirListBlockSel = TRUE;
-        }
-        
-       
-    }
-    /**
-    * Flag to block reselecting of current row after update
-    *
-    * Introduced to attempt to fix problem that when you double click to open a 
-    * Directory, after refresh, the clist recieves a select signal on the same rows
-    * and hence attemps to select the wrong directory..
-    *
-    * @var boolean
-    * @access private
-    */
-    var $_DirListBlockSel = FALSE;
-    /**
-    * Initial Select Row (not double click)
-    *
-    * Makes this selected item the 'active directory'
-    *
-    * @param  string $directory name of directory to browse
-    * @param  string $row       selected line
-    *
-    */
-    function _onDirListSelectRow($widget,$row) {
-        
-        if ($this->_DirListBlockSel) { 
-          
-            $this->_DirListBlockSel = FALSE;
-            $widget->select_row(0,0);
-            return;
-        }
-        if ($row < 0) return;
-        $this->_widget_dir_selection_entry->set_text($this->_DirSelectRows[$row]);
-    }
-    
-    /**
-    * Callback when the list of directories is clicked
-    *
-    * Used to find the double click to open it.
-    *
-    * @param   object gtkclist  
-    * @param   object gdkevent   
-    *
-    */
-
-    function _onDirListClick($widget,$event) {
-        if ($event->type != 5)  return;
-        $this->_DirSelectSetDir($this->_widget_dir_selection_entry->get_text());
-    }
-    /**
-    * Callback when the cancel/destroy window is pressed
-    *
-    * has to return TRUE (see the gtk tutorial on destroy events)
-    *
-    * 
-    */
-    function _onDirSelectionCancel() {
-        $this->_widget_dir_selection->hide();
-        return TRUE;
-    }
-    /**
-    * Callback when the OK btn is pressed
-    *
-    * hide window and update original widget.
-    *
-    */
-    
-    function _onDirSelectionOk() { 
-        if (!$this->_DirSelectActiveWidget) return;
-        $new= $this->_widget_dir_selection_entry->get_text();
-        $old= $this->_DirSelectActiveWidget->get_text();
-        
-        if ($new != $old) {
-            $this->_DirSelectActiveWidget->set_text($new);
-            $this->_ActivateConfigSave();
-        }
-        
-        $this->_DirSelectActiveWidget = NULL;
-        $this->_widget_dir_selection->hide();
-    }
+   
     
     //-------------------------- BASE Installer methods --------------------------
      /**
@@ -789,28 +461,32 @@ class PEAR_Frontend_Gtk extends PEAR
     function outputData($data,$command ){
         switch ($command) {
             case 'config-show':
-                $this->_buildConfig($data['data']); 
+                $this->_config->buildConfig($data['data']); 
                 break;
+            case 'uninstall':
+                $this->_install->uninstallOutputData($data);
+                return;
             default:
                 echo "COMMAND : $command\n";
                 echo "DATA: ".serialize($data)."\n";
         }
     }
 
-    function log($msg) {
-        echo "LOG $msg"; 
+    function log($msg,$command) {
+        
+        return $this->_info->show("LOG: $msg: $command");
     }
 
     // {{{ displayLine(text)
 
-    function displayLine($text)
+    function displayLine($msg,$args)
     {
-        echo "$text\n";
+       return $this->_info->show("DISPLAYLINE: $msg: $args");
     }
 
-    function display($text)
+    function display($text,$command='')
     {
-      echo "$text\n";
+     return $this->_info->show("TEXT: $text: $command");
     }
 
     // }}}
@@ -818,7 +494,8 @@ class PEAR_Frontend_Gtk extends PEAR
 
     function displayError($eobj)
     {
-        return $this->displayLine($eobj->getMessage()); 
+        //echo "ERROR: ".$eobj->getMessage();
+        return $this->_info->show("ERROR: ". $eobj->getMessage()); 
         
     }
 
@@ -827,7 +504,7 @@ class PEAR_Frontend_Gtk extends PEAR
 
     function displayFatalError($eobj)
     {
-        $this->displayError($eobj);
+          return $this->_info->show("FATAL ERROR: ". $eobj->getMessage()); 
         //exit(1);
     }
 
@@ -843,7 +520,8 @@ class PEAR_Frontend_Gtk extends PEAR
 
     function userDialog($prompt, $type = 'text', $default = '')
     {
-         echo "Dialog?" . $prompt;
+        
+        echo "Dialog?" . $prompt;
     }
 
     // }}}
@@ -851,7 +529,7 @@ class PEAR_Frontend_Gtk extends PEAR
 
     function userConfirm($prompt, $default = 'yes')
     {
-          echo "Confirm?" . $prompt;
+          echo "\nConfirm?" . $prompt;
     }
 
     // }}}
@@ -880,6 +558,7 @@ class PEAR_Frontend_Gtk extends PEAR
 
     function bold($text)
     {
+    echo "\nBOLD?" . $prompt;
     }
 
     // }}}

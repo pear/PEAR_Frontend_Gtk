@@ -38,7 +38,6 @@ class PEAR_Frontend_Gtk_Summary {
     
     function PEAR_Frontend_Gtk_Summary(&$ui) {
         $this->ui = &$ui;
-        $this->ui->_widget_close_details->connect_object('pressed',array(&$this,'hide'));
     }
     /*
     
@@ -64,11 +63,11 @@ documents.
     /*
     * show the details tab
     */
-    function show(&$package_info) {
+    function show(&$package) {
         $this->ui->_widget_details_area->show();
-        $this->active_package = $package_info;
+        $this->active_package = &$package;
         //$this->ui->_widget_install->set_sensitive(1);
-        foreach($package_info as $k=>$v)  {
+        foreach(get_object_vars($package) as $k=>$v)  {
             $v = str_replace("\r", '',$v);
             $var = "_widget_".strtolower($k);
             if (!is_object(@$this->ui->$var)) continue;
@@ -85,13 +84,13 @@ documents.
 
             }
         }
-        $this->_detailsVisableFlag = $package_info['package'];
+        $this->_detailsVisableFlag = $package->name;
     
     }
     
-    function toggle($package_info) {
-        if ($this->_detailsVisableFlag != $package_info['package']) {
-            $this->show($package_info);
+    function toggle(&$package) {
+        if ($this->_detailsVisableFlag != $package->name) {
+            $this->show($package);
             return;
         }
         $this->hide();

@@ -44,51 +44,118 @@ class PEAR_Frontend_Gtk_Install {
     */
     
     function PEAR_Frontend_Gtk_Install(&$ui) {
+     
         // connect buttons?
         $this->ui = &$ui;
-        $this->ui->_widget_download_list->set_column_auto_resize(0,TRUE);
-        $this->ui->_widget_download_list->set_column_auto_resize(1,TRUE);
-        $this->ui->_widget_download_list->set_column_auto_resize(2,TRUE);
-        $this->ui->_widget_done_button->connect('pressed',array(&$this,'_callbackDone'));
+        
+        
     }
+    
+    /**
+    * The ProgressBar for total files
+    * @var object GtkProgressBar
+    */
+    var $totalProgressBar; 
+    /**
+    * The ProgressBar for single download
+    * @var object GtkProgressBar
+    */
+    var $fileProgressBar; 
+     /**
+    * The Label for Downloading File XXX
+    * @var object GtkLabel
+    */
+    var $fileDownloadLabel;
+    /**
+    * The Label for Total XXX/XXX
+    * @var object GtkLabel
+    */
+    var $totalDownloadLabel;
+    /**
+    * The list of packages to be added/removed
+    * @var object GtkList
+    */
+    var $downloadList;
+    
     /* 
     * Start the download process (recievs a list of package 'associative arrays'
     * #TODO : recieve list of package objects to install/remove!
     *
     */
-    function start($list) {
-        
+    function start() {
+       
+        $this->downloadList->set_column_auto_resize(0,TRUE);
+        $this->downloadList->set_column_auto_resize(1,TRUE);
+        $this->downloadList->set_column_auto_resize(2,TRUE);
+        $this->downloadList->set_column_auto_resize(3,TRUE);
+        $this->downloadList->set_row_height(18);
         $this->ui->_widget_pages->set_page(1);
         $this->ui->_widget_done_button->set_sensitive(0);
         // load up the list into the download list..
-        $this->ui->_widget_download_list->clear();
+        $this->downloadList->clear();
         $i=0;
-        $install = array();
-        if ($list) foreach ($list as $package) {
-            print_r($package);
-            $this->ui->_widget_download_list->append(array('',$package['package'],$package['summary']));
-            $this->ui->_widget_download_list->set_pixmap($i,0,
-                $this->ui->_pixmaps['package.xpm'][0],
-                $this->ui->_pixmaps['package.xpm'][1]
-            );
+        
+        $queue = $this->ui->_packages->getQueue();
+        foreach ($queue as $package) {
+            
+            $this->downloadList->append(array('','',$package->name,$package->summary));
+            if ($package->QueueInstall) {
+                $this->downloadList->set_pixmap($i,0,
+                    $this->ui->_pixmaps['package.xpm'][0],
+                    $this->ui->_pixmaps['package.xpm'][1]
+                );
+            } else {
+                $this->downloadList->set_pixmap($i,0,
+                    $this->ui->_pixmaps['stock_delete-16.xpm'][0],
+                    $this->ui->_pixmaps['stock_delete-16.xpm'][1]
+                );
+            }
+            $lines[$package->name] = $i;
             $i++;
-            $install[] = $package['package'];
+            
         }
+         
+        
+        
+        $this->totalProgressBar->set_percentage(0);
+        $this->fileProgressBar->set_percentage(0);
+        $this->totalProgressBar->set_percentage(0);
         while(gtk::events_pending()) gtk::main_iteration();
-        $this->ui->_downloadTotal = $i;
+
+            $j=0;
+        $this->totalDownloadLabel->set_text("Total 0/{$i}");
+            
+         
+            foreach ($queue as $package) {
+                $this->fileDownloadLabel->set_text("Downloading {$package->name}");
+                while(gtk::events_pending()) gtk::main_iteration();
+                $package->doQueue();
+                 
+                $this->downloadList->set_pixmap($j,1,
+                    $this->ui->_pixmaps['check_yes.xpm'][0],
+                    $this->ui->_pixmaps['check_yes.xpm'][1]
+                ); 
+                $j++;
+                $this->totalProgressBar->set_percentage((float) ($j/$i));
+                $this->totalDownloadLabel->set_text("Total {$j}/{$i}");
+                while(gtk::events_pending()) gtk::main_iteration();
+               
+                
+            }    
         
-        $this->ui->_downloadPos=0;        
-        $cmd = PEAR_Command::factory('install',$this->ui->config);
-        $cmd->run('install' ,'', $install);
+        
+        $this->totalProgressBar->set_percentage(1.0);
+        $this->ui->_packages->_loadLocalPackages();
+        $this->ui->_packages->_mergePackages();
+        $this->ui->_packages->loadPackageList();
+        
         $this->ui->_widget_done_button->set_sensitive(1);
-        
         
     }
     /* 
     * GUI Callback - user presses the 'done button' 
     */
-    function _callbackDone() {
-        $this->ui->_package_list->loadList();
+    function callbackDone() {
         $this->ui->_widget_pages->set_page(0);
     }
     /**
@@ -97,19 +164,7 @@ class PEAR_Frontend_Gtk_Install {
     * @access private
     */
     var $_activeDownloadSize =0;
-    /**
-    * Total number of files that are being downloaded
-    * @var int
-    * @access private
-    */
     
-    var $_downloadTotal=1;
-    /**
-    * How many files have been downloaded in this 'session'
-    * @var int
-    * @access private
-    */
-    var $_downloadPos=0;
     
     /*
     * PEAR_Command Callback (relayed) - used by downloader
@@ -121,37 +176,32 @@ class PEAR_Frontend_Gtk_Install {
         
         switch ($msg) {
             case 'setup':
-                return;
-                
+            case 'done':    
             case 'saveas':
-                $this->ui->_widget_downloading_filename->set_text("Downloading {$params}");
-                $this->ui->_widget_downloading_total_progressbar->set_percentage(
-                    (float) ($this->_downloadPos/$this->_downloadTotal));
-                $this->_downloadPos++; 
-                $this->ui->_widget_downloading_total->set_text("Total {$this->_downloadPos}/{$this->_downloadTotal}");
                 while(gtk::events_pending()) gtk::main_iteration();
                 return;
                 
             case 'start':
                 $this->_activeDownloadSize = $params;
-                $this->ui->_widget_downloading_file_progressbar->set_percentage(0);
+                $this->fileProgressBar->set_percentage(0);
                 while(gtk::events_pending()) gtk::main_iteration();
                 return;
                 
             case 'bytesread':
-                $this->ui->_widget_downloading_file_progressbar->set_percentage(
+                $this->fileProgressBar->set_percentage(
                     (float) ($params / $this->_activeDownloadSize));
                 while(gtk::events_pending()) gtk::main_iteration();
                 return;
                 
-            case 'done':
-                $this->ui->_widget_downloading_total_progressbar->set_percentage(
-                    (float) ($this->_downloadPos/$this->_downloadTotal));
-               
+             ;
             default: // debug - what calls this?
                 if (is_object($params)) $params="OBJECT";
                 echo "MSG: $msg ". serialize($params) . "\n";
         }
+    }
+    
+    function uninstallOutputData($msg) {
+        return;
     }
     
 
