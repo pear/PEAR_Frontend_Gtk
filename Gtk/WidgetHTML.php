@@ -75,6 +75,49 @@ User Interaction:
 
 Well, if in doubt email me and I'll add more notes...
 
+
+---------------------- USAGE EXAMPLE ------------------------------
+
+include('PEAR/Frontend/Gtk/WidgetHTML.php');
+dl('php_gtk.dll');
+error_reporting(E_ALL);
+
+$window = &new GtkWindow();
+$window->set_name('Test Input');
+$window->set_position(GTK_WIN_POS_CENTER);
+$window->set_usize(600,400);
+$window->connect_object('destroy', array('gtk', 'main_quit'));
+$vbox = &new GtkVBox();
+$window->add($vbox);
+$vbox->show();
+
+$t = new PEAR_Frontend_Gtk_WidgetHTML;
+ //$t->test(dirname(__FILE__).'/tests/test3.html');
+
+$t->loadURL("http://www.php.net");
+$t->tokenize();
+$t->Interface();
+$vbox->pack_start($t->widget);
+
+$button = &new GtkButton('Quit');
+$vbox->pack_start($button, false, false);
+$button->connect_object('clicked', array($window, 'destroy'));
+$button->show();
+
+$window->show();
+
+gtk::main();
+
+
+
+
+
+
+
+
+
+
+
 */
 
 
@@ -1719,45 +1762,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
 
 }
 
-/*
-
-dl('php_gtk.dll');
-error_reporting(E_ALL);
-
-
-
-
-
-$window = &new GtkWindow();
-$window->set_name('Test Input');
-$window->set_position(GTK_WIN_POS_CENTER);
-$window->set_usize(600,400);
-$window->connect_object('destroy', array('gtk', 'main_quit'));
-$vbox = &new GtkVBox();
-$window->add($vbox);
-$vbox->show();
-
-$t = new PEAR_Frontend_Gtk_WidgetHTML;
- //$t->test(dirname(__FILE__).'/tests/test3.html');
-
-$t->loadURL("http://www.php.net");
-$t->tokenize();
-$t->Interface();
-$vbox->pack_start($t->scrolledwindow);
-
-
-$button = &new GtkButton('Quit');
-$vbox->pack_start($button, false, false);
-$button->connect_object('clicked', array($window, 'destroy'));
-$button->show();
-
-$window->show();
-
-gtk::main();
-
-*/
-
+ 
 
 
 ?>
-
