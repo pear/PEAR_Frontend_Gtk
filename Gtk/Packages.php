@@ -59,7 +59,7 @@ class PEAR_Frontend_Gtk_Packages {
         foreach ($this->_available_packages as  $name => $info) {
             // installed already?
             $info['package'] = $name;
-            if ($this->_package_status[$name]) {
+            if (@$this->_package_status[$name]) {
                 // newer
                 $v = $this->_package_status[$name]['version'];
                 $this->_package_status[$name] = $info;
@@ -142,9 +142,9 @@ documents.
             } 
             
             $showversion = $info['stable'];
-            if ($info['version'] && ($info['version'] != $info['stable']))
+            if (@$info['version'] && (@$info['version'] != $info['stable']))
                 $showversion = "New:".$info['stable'];
-            //    $showversion = "**".$info['version'] . "->".$info['stable']. "**";
+            //$showversion = "**".$info['version'] . "->".$info['stable']. "**";
             
             $this->_nodes[$name] = $this->widget->insert_node(
                     $parent, NULL, //parent, sibling
@@ -196,7 +196,7 @@ documents.
     */
     function _initPixmaps(&$window) {
         
-        if ($this->_pixmaps) return;
+        if (@$this->_pixmaps) return;
         $dir = dirname(__FILE__).'/xpm';
         $dh = opendir($dir);
         if (!$dh) return;
@@ -215,7 +215,6 @@ documents.
     *  
     */
     function _callbackSelectRow($node,$col) {
-        print_r(array($node,$a,$b));
         $package = $this->widget->node_get_row_data($node);
         //if (!$package) return;
         
