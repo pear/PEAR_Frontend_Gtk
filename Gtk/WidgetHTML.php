@@ -1,5 +1,82 @@
 <?
 
+/*
+  +----------------------------------------------------------------------+
+  | PHP Version 4                                                        |
+  +----------------------------------------------------------------------+
+  | Copyright (c) 1997-2002 The PHP Group                                |
+  +----------------------------------------------------------------------+
+  | This source file is subject to version 2.02 of the PHP license,      |
+  | that is bundled with this package in the file LICENSE, and is        |
+  | available at through the world-wide-web at                           |
+  | http://www.php.net/license/2_02.txt.                                 |
+  | If you did not receive a copy of the PHP license and are unable to   |
+  | obtain it through the world-wide-web, please send a note to          |
+  | license@php.net so we can mail you a copy immediately.               |
+  +----------------------------------------------------------------------+
+  | Author: Alan Knowles <alan@akbkhome.com>                             |
+  +----------------------------------------------------------------------+
+
+  $Id$
+*/
+
+/**
+ * WidgetHTML - the HTML rendering widget
+ * 
+ * Displays HTML/web pages
+ *
+ * @author Alan Knowles <alan@akbkhome.com>
+ */
+
+/*
+
+Notes about this:
+
+1. why is this all in one big class?
+ - well, this is the second effort at making a web browser in pure php,
+ the first effort was multiclassed, however it proved impossible to solve 
+ all the fundimental issues while messing around with all those files/references
+ etc.
+ 
+ As this class grows (and all those issues are worked out) it probably will
+ be broken apart
+ 
+2. How does it work.
+Rendering:
+ - First Load the data $this->loadURL($url); , stores it in $_source
+ - Second tokenize the html 
+    tags become an array($tag, $attributes_string)
+    raw text is just  a string in the token array. - similar to the php tokenizer.
+    # TODO - this is a down and dirty tokenizer - either write it in C or break it into 
+    it's own class. - which does arrays of attributes as well..
+
+ - Read the HTML and generate 3 key bits of data...
+    $this->table = tables and td tags, the body is one big table (table[0])
+    $this->_lines[], an array of line data (each bit of text is assigned a line, lines 
+        contain information like height and default left/right
+    $this->_textParts[] an associative array of details about a particular item of text
+         to be drawn after processing. - like font,color names etc.
+    current state is stored in the stack / simple push/pop array for each item, and certain
+        attributes, $this->in returns the attributes, $this->inID returns the token pos.
+ 
+ 
+ - Recalculate the heights (post process)
+   - goest through the table/lines and recaculates each lines real y location.
+   - recalcs td heights etc.
+   
+ - Render objects - tables, td's then textparts..
+ 
+User Interaction:
+  - links are done with mouse motion detection and the $_links array.
+  - page resize is based around the expose event, and testing the layout allocation.
+    It does a delayed 1/2 second check to see if you are still resizing..
+  - cursor changes: timer etc. in $this->_cursors[]
+ 
+    
+Well, if in doubt email me and I'll add more notes...    
+
+*/
+
 
 
 class PEAR_Frontend_Gtk_WidgetHTML {
@@ -1091,7 +1168,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         
        
     }                  
-    function _LayoutScrolled() { // windows bug fix
+    function _LayoutScrolled() { // windows bug fixmo
         $this->layout->queue_draw();
     }
     
