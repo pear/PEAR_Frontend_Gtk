@@ -70,6 +70,13 @@ class PEAR_Frontend_Gtk_DirSelect {
     */
     var $_DirSelectActiveWidget = NULL;
     /**
+    * Currently active configuration key
+    *
+    * @var string 
+    * @access private
+    */
+    var $_DirSelectActiveKey = NULL;
+    /**
     * Display the Directory selection dialog
     *
     * Displays the directory dialog, fills in the data etc.
@@ -77,8 +84,9 @@ class PEAR_Frontend_Gtk_DirSelect {
     * @param   object gtkentry   The text entry to fill in on closing
     *
     */
-    function onDirSelect($widget) {
+    function onDirSelect($widget,$key) {
         // set the title!!
+        $this->_DirSelectActiveKey = $key;
         $this->_DirSelectActiveWidget = &$widget;
         $prompt = 'xxx';
         $prompt = $this->ui->config->getPrompt($widget->get_data('key'));
@@ -240,6 +248,7 @@ class PEAR_Frontend_Gtk_DirSelect {
         
         if ($new != $old) {
             $this->_DirSelectActiveWidget->set_text($new);
+            $this->ui->_config->NewConfig[$this->_DirSelectActiveKey] = $new;
             $this->ui->_config->ActivateConfigSave();
         }
         

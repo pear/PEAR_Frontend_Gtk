@@ -57,6 +57,13 @@ class PEAR_Frontend_Gtk_Config {
     */
     var $reset;
     /**
+    * The New configuration 
+    *
+    * @var array asssociative key=>value
+    * @access private
+    */
+    var $NewConfig;
+    /**
     * Constructor
     *
     * @param array see config-show for more details.
@@ -75,6 +82,7 @@ class PEAR_Frontend_Gtk_Config {
     * @param  string            no idea yet!
     */
     function loadConfig($widget=NULL,$what=NULL) {
+        $this->NewConfig= array();
         if ($this->_configTabs) 
             foreach (array_keys($this->_configTabs) as $k) {
                 $page = $this->notebook->page_num($this->_configTabs[$k]);
@@ -133,13 +141,13 @@ class PEAR_Frontend_Gtk_Config {
         switch ($type) {
             case 'string':
             case 'password':
-            case 'int': // umask: should really be checkboxes..
+            //case 'int': // umask: should really be checkboxes..
                 $gtkentry = &new GtkEntry();
                 $gtkentry->set_text($v);
                 
                 $gtkentry->connect_object_after('enter_notify_event',
                     array(&$this,'_setConfigHelp'),$this->ui->config->getDocs($k));
-                $gtkentry->connect_object_after('changed', array(&$this,'_ActivateConfigSave'));
+                $gtkentry->connect_after('changed', array(&$this,'_textChanged'),$k,$v);
                 if ($type == 'password')
                     $gtkentry->set_visibility(FALSE);
                 $gtkentry->show();
@@ -156,7 +164,7 @@ class PEAR_Frontend_Gtk_Config {
                 $gtkentry->show();
                 $gtktable->attach($gtkentry, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
                 $gtkbutton = &new GtkButton('...');
-                $gtkbutton->connect_object_after('clicked', array(&$this->ui->_dirselect,'onDirSelect'),$gtkentry);
+                $gtkbutton->connect_object_after('clicked', array(&$this->ui->_dirselect,'onDirSelect'),$gtkentry,$k);
                 $gtkbutton->show();
                 $gtktable->attach($gtkbutton, 2, 3, $r, $r+1, GTK_SHRINK,GTK_SHRINK);
                 break;
@@ -167,7 +175,7 @@ class PEAR_Frontend_Gtk_Config {
                 $sel = 0;
                 foreach($options as $i=>$option) {
                     $items[$i] = &new GtkMenuItem($option);
-                    //$items[$i]->connect('activate', 'echo_activated', $labels[$i], $pos[$i], 
+                    $items[$i]->connect_object_after('activate', array(&$this, '_optionSelect'),$k,$option, $v);
                     $gtkmenu->append($items[$i]);
                     if ($option == $v) 
                         $sel = $i;
@@ -178,7 +186,7 @@ class PEAR_Frontend_Gtk_Config {
                 $gtkoptionmenu->set_menu($gtkmenu);
                 $gtkoptionmenu->connect_object_after('enter_notify_event',
                     array(&$this,'_setConfigHelp'),$this->ui->config->getDocs($k));
-              
+                
                 $gtkoptionmenu->show();
                 $gtktable->attach($gtkoptionmenu, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
                 break;
@@ -189,8 +197,47 @@ class PEAR_Frontend_Gtk_Config {
                 $gtkspinbutton->show();
                 $gtkspinbutton->connect_object_after('enter_notify_event',
                     array(&$this,'_setConfigHelp'),$this->ui->config->getDocs($k));
-            
+                $gtkspinbutton->connect_after('changed', array(&$this,'_SpinChanged'),$k,$v);
+               
                 $gtktable->attach($gtkspinbutton, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
+                break;
+                
+            case 'mask': // unix file mask -- a table with lots of checkboxes...
+                 ;
+                $gtklabel->set_alignment(0.0, 0.1);
+                $masktable =  &new GtkTable();
+                $masktable->set_row_spacings(0);
+                $masktable->set_col_spacings(10);
+                $masktable->set_border_width(0);
+                $masktable->show();
+                $rows = array('User','Group','Everybody');
+                $cols = array('Read','Write','Execute');
+                $mult = 64;
+                foreach($rows as $i=>$string) {
+                    
+                    $label = &new GtkLabel($string);
+                    $label->set_justify(GTK_JUSTIFY_LEFT);
+                    $label->set_alignment(0.0, 0.5);
+                    $label->show();
+                    $masktable->attach($label, 0, 1, $i, $i+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
+                    $add =4;
+                    foreach($cols as $j=>$string) {
+                        
+                        if ($i) $string = ''; // first row show text only!
+                        $gtkcheckbutton = new GtkCheckButton($string);
+                        if (($mult * $add) & $v) $gtkcheckbutton->set_active(TRUE);
+                        $gtkcheckbutton->show();
+                        $gtkcheckbutton->connect_object_after('enter_notify_event',
+                            array(&$this,'_setConfigHelp'),$this->ui->config->getDocs($k));
+                        $gtkcheckbutton->connect_after('toggled',array(&$this,'_maskToggled'),$k,$mult * $add,$v);
+                        $masktable->attach($gtkcheckbutton , $j+1, $j+2, $i, $i+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
+                        $add = $add/2;
+                    }
+                    $mult = $mult/8;
+                }
+                
+                
+                $gtktable->attach($masktable, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
                 break;
             default:
                 echo "$prompt : ". $this->ui->config->getType($k) . "\n";    
@@ -237,18 +284,65 @@ class PEAR_Frontend_Gtk_Config {
     }
    
     
+    
+    function _textChanged($widget,$key,$original) {
+        $this->NewConfig[$key]  = $widget->get_text();
+        if ($this->NewConfig[$key]  == $original) 
+            unset($this->NewConfig[$key] );
+        
+        $this->ActivateConfigSave();
+        
+    }
+    
+     function _optionSelect($key,$value,$original) {
+        $this->NewConfig[$key]  = $value;
+        if ($this->NewConfig[$key]  == $original) 
+            unset($this->NewConfig[$key] );
+        
+        $this->ActivateConfigSave();
+        
+    }
+    function _spinChanged($widget,$key,$original) {
+        $this->NewConfig[$key]  = $widget->get_value_as_int();
+        if ($this->NewConfig[$key]  == $original) 
+            unset($this->NewConfig[$key] );
+        
+        $this->ActivateConfigSave();
+        
+    }
+    function _maskToggled($widget,$key,$value,$original) {
+        if (!@$this->NewConfig[$key]) $this->NewConfig[$key] = $original;
+        // set:
+        if ($widget->get_active()) {
+            if (!($value & $this->NewConfig[$key])) $this->NewConfig[$key] += $value;
+        } else { // unset
+            if ($value & $this->NewConfig[$key]) $this->NewConfig[$key] -= $value;
+        }
+        if ($this->NewConfig[$key]  == $original) 
+            unset($this->NewConfig[$key] );
+        $this->ActivateConfigSave();
+    }    
+    
+    
+    
     /**
     * Make the Save and reset buttons pressable.
     *
     */
     function ActivateConfigSave() {
-        $this->save->set_sensitive(TRUE); 
-        $this->reset->set_sensitive(TRUE);
+        $set = TRUE;
+        if (!$this->NewConfig) $set = FALSE;
+        $this->save->set_sensitive($set); 
+        $this->reset->set_sensitive($set);
     }
     
     function saveConfig() {
+        
         //mmh now what :)
-    
+        $cmd = PEAR_Command::factory('config-set',$this->ui->config);
+        foreach ($this->NewConfig as $k=>$v) 
+            $cmd->doConfigSet('config-set' ,'', array($k,$v));
+        $this->loadConfig();
     
     }
     

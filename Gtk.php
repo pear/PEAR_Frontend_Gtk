@@ -232,17 +232,25 @@ class PEAR_Frontend_Gtk extends PEAR
          
         $this->_packages->loadPackageList();
         
-        $this->_setStyle('black_bg1','#FFFFFF','#000000',TRUE);
+        $this->_setStyle('black_bg1','#FFFFFF','#000000',FALSE);
         $this->_setStyle('black_bg2','#FFFFFF','#000000',TRUE);
-        $this->_setStyle('black_bg3','#FFFFFF','#000000',TRUE);
+        $this->_setStyle('black_bg3','#FFFFFF','#000000',FALSE);
         $this->_setStyle('black_bg4','#FFFFFF','#000000',TRUE);
         
         //$this->_setStyle('download_list','#000000','#FFFFFF',TRUE);
+        
+        //$this->_widget_close_details->set_style($newstyle);
         $this->_setStyle('close_details','#FFFFFF','#000000',FALSE);
+        $this->_loadButton('close_details' ,        'black_close_icon.xpm',TRUE);
+        
+        
+         
         
         // sort out the text.
         $this->_setStyle('summary'   ,'#FFFFFF','#000000',TRUE);
-        $this->_setStyle('black_msg1','#FFFFFF','#000000',TRUE);
+        $this->_setFont('summary','-*-helvetica-bold-r-normal-*-*-80-*-*-p-*-iso8859-1'); 
+        
+        $this->_setStyle('black_msg1','#FFFFFF','#000000',FALSE);
         
         $newstyle = &new GtkStyle();
         $this->_widget_packages_install->set_style($newstyle);
@@ -250,8 +258,10 @@ class PEAR_Frontend_Gtk extends PEAR
         $this->_loadButton('pear_installer_button' ,'nav_installer.xpm');
         $this->_loadButton('config_button' ,        'nav_configuration.xpm');
         $this->_loadButton('documentation_button' , 'nav_documentation.xpm');
-        $this->_loadButton('close_details' ,        'black_close_icon.xpm');
-
+        
+        //$this->_setStyleWidget($pixmap,'#000000','#339900',FALSE);
+        
+        
         $this->_setStyle('package_logo','#000000','#339900',TRUE);
         $this->_setStyle('package_logo_text','#FFFFFF','#339900'); 
         $this->_setFont('package_logo_text','-*-helvetica-bold-r-normal-*-*-100-*-*-p-*-iso8859-1'); 
@@ -303,19 +313,20 @@ class PEAR_Frontend_Gtk extends PEAR
     *
     * @param string widget name 
     * @param string  icon name
+    * @param boolean relief - the left menu is FALSE, other buttons are TRUE
     * @access private
     */ 
     
-    function _loadButton($widgetname, $icon) {
+    function &_loadButton($widgetname, $icon, $relief=FALSE) {
         //echo $widgetname;
         $widget_fullname = "_widget_". $widgetname;
         $widget = &$this->$widget_fullname;
         
         $child = $widget->child;
-        if ($child)
-            if (get_class($child) == "GtkVBox") return;
-       
-        $widget->set_relief(GTK_RELIEF_NONE);
+        //if ($child)
+        //    if (get_class($child) == "GtkVBox") return;
+        if (!$relief) 
+            $widget->set_relief(GTK_RELIEF_NONE);
           
         //$widget->set_usize(150,100);
         $vbox = new GtkVBox; 
@@ -331,6 +342,7 @@ class PEAR_Frontend_Gtk extends PEAR
         //$widget->set_usize(150,100);
         $vbox->show();
         $pixmap->show();
+        return $vbox;
      
     }
     
@@ -347,7 +359,10 @@ class PEAR_Frontend_Gtk extends PEAR
     function _setStyle($widgetname,$fgcolor='',$bgcolor='',$copy=FALSE) {
         //echo "SET: $widgetname: $fgcolor/$bgcolor ". ((int) $copy) . "\n";
         $widget_fullname = "_widget_". $widgetname;
-        $widget = &$this->$widget_fullname;
+      
+        $this->_setStyleWidget($this->$widget_fullname,$fgcolor,$bgcolor,$copy) ;
+    }
+    function _setStyleWidget(&$widget,$fgcolor='',$bgcolor='',$copy=FALSE) {
         if ($copy) {
             $oldstyle = $widget->get_style();
             $newstyle = $oldstyle->copy();
@@ -361,6 +376,7 @@ class PEAR_Frontend_Gtk extends PEAR
             $newstyle->fg[GTK_STATE_ACTIVE] = $fg;
             $newstyle->fg[GTK_STATE_SELECTED] = $fg;
             $newstyle->fg[GTK_STATE_INSENSITIVE] = $fg;
+            //$newstyle->bg_pixmap=NULL;
         }
         if ($bgcolor) { // set background color
             $bg = &new GdkColor($bgcolor);
@@ -369,6 +385,7 @@ class PEAR_Frontend_Gtk extends PEAR
             $newstyle->bg[GTK_STATE_ACTIVE] = $bg;
             $newstyle->bg[GTK_STATE_SELECTED] = $bg;
             $newstyle->bg[GTK_STATE_INSENSITIVE] = $bg;
+            //$newstyle->bg_pixmap=NULL;
         }
         $widget->set_style($newstyle);
     

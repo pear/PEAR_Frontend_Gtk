@@ -75,7 +75,7 @@ documents.
             switch (get_class($w)) {
                 case  'GtkLabel':
                 case  'GtkEntry':
-                    $w->set_text($v);
+                    $w->set_text(str_replace('\n',' ',$v));
                     break;
                 case 'GtkText':
                     $w->delete_text(0,-1);
@@ -84,8 +84,10 @@ documents.
 
             }
         }
+        $vadj = $this->ui->_widget_description_sw->get_vadjustment();
+        $vadj->set_value(0);
         $this->_detailsVisableFlag = $package->name;
-    
+     
     }
     
     function toggle(&$package) {
@@ -100,6 +102,7 @@ documents.
     
     
     function hide() {
+        
         $this->ui->_widget_details_area->hide();
         $this->_detailsVisableFlag = '';
     
