@@ -192,7 +192,7 @@ class PEAR_Frontend_Gtk_Config {
                 break;
             // debug: shourd  really be 
             case 'integer': // debug : should really be a set?
-                $gtkadj = &new GtkAdjustment($v, 0.0, 3.0, 1.0, 1.0, 0.0);
+                $gtkadj = &new GtkAdjustment((double) $v, 0.0, 3.0, 1.0, 1.0, 0.0);
                 $gtkspinbutton = &new GtkSpinButton($gtkadj);
                 $gtkspinbutton->show();
                 $gtkspinbutton->connect_object_after('enter_notify_event',

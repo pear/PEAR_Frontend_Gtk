@@ -35,6 +35,7 @@ class PEAR_Frontend_Gtk_Summary {
     var $widget; // the list widget
     var $config; // reference to config;
     var $active_package=""; // currently selected package
+    var $_detailsVisableFlag  = FALSE; // is the dialog visable
     
     function PEAR_Frontend_Gtk_Summary(&$ui) {
         $this->ui = &$ui;
@@ -68,6 +69,8 @@ documents.
         $this->active_package = &$package;
         //$this->ui->_widget_install->set_sensitive(1);
         foreach(get_object_vars($package) as $k=>$v)  {
+            if (@is_object($v)) continue;
+            if (@is_array($v)) continue;
             $v = str_replace("\r", '',$v);
             $var = "_widget_".strtolower($k);
             if (!is_object(@$this->ui->$var)) continue;

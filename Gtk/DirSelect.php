@@ -206,7 +206,7 @@ class PEAR_Frontend_Gtk_DirSelect {
             return;
         }
         if ($row < 0) return;
-        $this->entry->set_text($this->_DirSelectRows[$row]);
+        $this->entry->set_text(@$this->_DirSelectRows[$row]);
     }
     
     /**
