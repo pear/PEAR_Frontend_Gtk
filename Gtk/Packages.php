@@ -51,6 +51,13 @@ class PEAR_Frontend_Gtk_Packages {
         $this->ui->_widget_package_list_holder->add($this->widget);
         
         $this->ui->_widget_packages_install->connect('pressed',array(&$this,'_callbackInstall'));
+        return;
+        //untested
+        $this->loadLocalPackages();
+        $this->loadRemotePackages();
+        $this->mergePackages();
+    
+        
         
     }
     
@@ -319,12 +326,7 @@ documents.
     var $packages;              // associative array of packagename : package
     
     
-    function PEAR_Frontend_Gtk_PackageDataCollection(&$ui) {
-        $this->ui = &$ui;
-        $this->loadLocalPackages();
-        $this->loadRemotePackages();
-        $this->mergePackages();
-    }
+    
     
     function loadLocalPackages () {
         $reg = new PEAR_Registry($this->ui->config->get('php_dir'));
@@ -346,7 +348,7 @@ documents.
             exit;
             
         }
-        foreach ($remote as as  $name => $packagear) {
+        foreach ($remote as  $name => $packagear) {
             $package = PEAR_Frontend_Gtk_PackageData::staticNewFromArray($packagear);
             $package->name = $name;
             $this->_remotemotePackageCache[] = $package;
@@ -355,7 +357,7 @@ documents.
     
     function mergePackages () { // builds a mreged package list
         // start with remote list.
-        $newpackages[];
+        $newpackages = array();
         foreach ($this->_remotePackageCache as $package) 
             $newpackages[$package->name] = $package;
         
@@ -378,26 +380,26 @@ documents.
     
     function resetQueue() {
         foreach(array_keys($this->packages) as $packagename) {
-            $this->packages[$packagname]->QueueInstall = FALSE;
-            $this->packages[$packagname]->QueueRemove = FALSE;
+            $this->packages[$packagename]->QueueInstall = FALSE;
+            $this->packages[$packagename]->QueueRemove = FALSE;
         }
     }
     
     function &getInstallQueue() {
-        $ret = array()
+        $ret = array();
         foreach(array_keys($this->packages) as $packagename) {
-            if (!$this->packages[$packagname]->QueueInstall) continue;
-            $ret[] = &$this->packages[$packagname];
+            if (!$this->packages[$packagename]->QueueInstall) continue;
+            $ret[] = &$this->packages[$packagename];
         }
         return $ret;
     
     }
     
     function &getRemoveQueue() {
-        $ret = array()
+        $ret = array();
         foreach(array_keys($this->packages) as $packagename) {
-            if (!$this->packages[$packagname]->QueueRemove) continue;
-            $ret[] = &$this->packages[$packagname];
+            if (!$this->packages[$packagename]->QueueRemove) continue;
+            $ret[] = &$this->packages[$packagename];
         }
         return $ret;
     }
