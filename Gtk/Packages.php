@@ -47,7 +47,14 @@ class PEAR_Frontend_Gtk_Packages {
         if (!$this->_available_packages) {
             $r = new PEAR_Remote($this->Frontend_Gtk->config);
             $this->_available_packages = $r->call('package.listAll', true);
+            if (PEAR::isError($this->_available_packages)) {
+                // whats the official way to hanlde this?
+                echo $this->_available_packages->message . '\n';
+                exit;
+                
+            }
         }
+      
         // merge available
         foreach ($this->_available_packages as  $name => $info) {
             // installed already?
