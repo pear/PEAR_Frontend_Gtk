@@ -80,21 +80,26 @@ Well, if in doubt email me and I'll add more notes...
 
 
 class PEAR_Frontend_Gtk_WidgetHTML {
-
+    var $widget; // what you add to your interface (as it's too complex to extend Scrolled window)
     var $_pixmap_area_x =1024;
     var $_pixmap_area_y = 5000;
     var $_source; // raw HTML
     var $_URL; // the URL
     function loadURL($URL) { // load a file into source - for testing only
-        echo "OPENING URL $URL\n";
+        //echo "OPENING URL $URL\n";
         $this->_URL = trim($URL);
         $this->_URLparse = parse_url(trim($URL));
-        $this->_source = str_replace("\r", " ",implode('',file(trim($URL))));
+        $this->_source = @str_replace("\r", " ",implode('',file(trim($URL))));
+        if ($this->_source) return TRUE;
         //$fh = fopen('/tmp/test','w'); fwrite($fh,$this->_source ); fclose($fh);
     }
+    function loadTEXT($text) {
+        $this->_source = $text;
+    }
+    
     var $_tokens = array(); // HTML Tokens id => array($tag,$attribute_string) | $string
     function tokenize() { // tokenize the HTML into $this->tokens
-        echo "TOKENIZING\n";
+        //echo "TOKENIZING\n";
         $tok = strtok($this->_source,'<');
         $a[0] = $tok;
         while( $tok !== FALSE ) {
@@ -162,6 +167,9 @@ class PEAR_Frontend_Gtk_WidgetHTML {
     var $_Building=FALSE;
     function build() { // read the tokens and build the line/table arrays - then display
 		if($this->Building) return;
+        if(!$this->Realized) return;
+        if (!$this->_tokens) return;
+         
 		$this->_Building=TRUE;
           $this->Start = FALSE;
         // reset all major variables;
@@ -470,6 +478,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                         break;
                     case 'LI':
                     case 'DT':
+                    case 'DD':
                         $this->$method($item[0],$pos,@$item[1]);
                         if ($method == 'push')
                             $this->linebr($this->_tokens[$pos][0],$pos);
@@ -1112,18 +1121,18 @@ class PEAR_Frontend_Gtk_WidgetHTML {
 
     function Interface() { // Create the Drawing Area
 
-        $this->scrolledwindow = &new GtkScrolledWindow();
-        $hadj = $this->scrolledwindow->get_hadjustment();
-        $vadj = $this->scrolledwindow->get_vadjustment();
+        $this->widget = &new GtkScrolledWindow();
+        $hadj = $this->widget->get_hadjustment();
+        $vadj = $this->widget->get_vadjustment();
         $hadj->connect('value-changed', array(&$this,'_LayoutScrolled'));
         $vadj->connect('value-changed', array(&$this,'_LayoutScrolled'));
 
         $this->layout =  &new GtkLayout($hadj,$vadj);
         $this->layout->set_size($this->_area_x,$this->_area_y);
         $this->layout->show();
-        $this->scrolledwindow->show();
-        $this->scrolledwindow->set_policy(GTK_POLICY_AUTOMATIC,GTK_POLICY_AUTOMATIC);
-        $this->scrolledwindow->add($this->layout);
+        $this->widget->show();
+        $this->widget->set_policy(GTK_POLICY_AUTOMATIC,GTK_POLICY_AUTOMATIC);
+        $this->widget->add($this->layout);
         //$this->scrolledwindow->add_events(  GDK_EXPOSURE_MASK  );
 
 
@@ -1159,8 +1168,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
        // $this->layout->add_events(   GDK_KEY_PRESS_MASK   );
 
         $this->drawing_area->set_flags( GTK_CAN_FOCUS);
-
-
+        
 
         //$this->drawing_area->connect("key_press_event",        array(&$this,"_DrawingAreaCallbackKeyPress"));
         //$this->drawing_area->connect("button_release_event",   array(&$this,"_DrawingAreaCallbackBtnPress"));
@@ -1177,7 +1185,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
     function _LayoutScrolled() { // windows bug fixmo
     	//echo "SCROLL";
         $this->layout->queue_draw();
-        $vadj= $this->scrolledwindow->get_vadjustment();
+        $vadj= $this->widget->get_vadjustment();
         if (@!$this->drawing_area) return;
         if ($this->_LayoutRefesh==time()) return;
     	$this->_LayoutRefesh=time();
@@ -1186,14 +1194,14 @@ class PEAR_Frontend_Gtk_WidgetHTML {
 
 
     }
-
+    var $Realized = FALSE;
     var $pixmap; // the pixmap that everything gets drawn on
     function _DrawingAreaCallbackConfigure($widget, $event) { // the callback to create the pixmap & start building
         if (@$this->pixmap) return true;
 
+        $this->Realized = TRUE;
 
-
-        $this->Start = FALSE;
+        
         $this->build();
         $this->_setCursor(GDK_ARROW);
 
@@ -1711,7 +1719,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
 
 }
 
-
+/*
 
 dl('php_gtk.dll');
 error_reporting(E_ALL);
@@ -1747,11 +1755,7 @@ $window->show();
 
 gtk::main();
 
-?>
-
-
-/* -------------------- end scribble code ---------------------- */
-
+*/
 
 
 

@@ -26,6 +26,7 @@ require_once "PEAR/Frontend/Gtk/Install.php";
 require_once "PEAR/Frontend/Gtk/Config.php";
 require_once "PEAR/Frontend/Gtk/DirSelect.php";
 require_once "PEAR/Frontend/Gtk/Info.php";
+require_once "PEAR/Frontend/Gtk/Documentation.php";
 
 /**
  * Core Gtk Frontend Class
@@ -86,6 +87,7 @@ class PEAR_Frontend_Gtk extends PEAR
         $this->_config       = &new PEAR_Frontend_Gtk_Config($this);
         $this->_dirselect    = &new PEAR_Frontend_Gtk_DirSelect($this);
         $this->_info         = &new PEAR_Frontend_Gtk_Info($this);
+        $this->_documentation= &new PEAR_Frontend_Gtk_Documentation($this);
         $this->_loadGlade();
         $this->_initInterface();
     }
@@ -112,7 +114,7 @@ class PEAR_Frontend_Gtk extends PEAR
         preg_match_all('/\<name\>([^\<]+)\<\/name\>/',$data,$items);
         foreach ($items[1] as $widgetname) {   
             $args = array();
-            if (preg_match('/^(_install|_packages|_summary|_config|_dirselect|_info)_(.*)$/',$widgetname,$args)) {
+            if (preg_match('/^(_install|_packages|_summary|_config|_dirselect|_info|_documentation)_(.*)$/',$widgetname,$args)) {
                 $obj = $args[1];
                 $varname= $args[2];
                 //echo "ASSIGN $obj $varname to $widgetname\n";
@@ -127,7 +129,7 @@ class PEAR_Frontend_Gtk extends PEAR
         //print_r($items[1]);
         foreach ($items[1] as $handler)  {
             $args = array();
-            if (preg_match('/^(_install|_packages|_summary|_config|_dirselect|_info)_(.*)$/',$handler,$args)) {
+            if (preg_match('/^(_install|_packages|_summary|_config|_dirselect|_info|_documentation)_(.*)$/',$handler,$args)) {
                 $obj = $args[1];
                 $method= $args[2];
                 //echo "CONNECT $obj $method to $handler\n";
@@ -233,7 +235,7 @@ class PEAR_Frontend_Gtk extends PEAR
         $this->_packages->loadPackageList();
         
         $this->_setStyle('black_bg1','#FFFFFF','#000000',FALSE);
-        $this->_setStyle('black_bg2','#FFFFFF','#000000',TRUE);
+        $this->_setStyle('black_bg2','#FFFFFF','#000000',FALSE);
         $this->_setStyle('black_bg3','#FFFFFF','#000000',FALSE);
         $this->_setStyle('black_bg4','#FFFFFF','#000000',TRUE);
         
@@ -305,6 +307,24 @@ class PEAR_Frontend_Gtk extends PEAR
         
         $this->_widget_config_logo->put($config_logo,0,0);
         $config_logo->show();
+        
+        
+        /* documentation loading */
+        $this->_setStyle('documentation_logo','#000000','#339900',TRUE);
+        $this->_setStyle('documentation_logo_text','#FFFFFF','#339900'); 
+        $this->_setFont('documentation_logo_text','-*-helvetica-bold-r-normal-*-*-100-*-*-p-*-iso8859-1'); 
+        $documentation_logo = &new GtkPixmap(
+            $this->_pixmaps['pear.xpm'][0],
+            $this->_pixmaps['pear.xpm'][1]);
+        
+        $this->_widget_documentation_logo->put($documentation_logo,0,0);
+        $documentation_logo->show();
+        $this->_documentation->init();
+        $this->_setStyle('documentation_view_label'   ,'#FFFFFF','#000000',TRUE);
+        $this->_setFont('documentation_view_label','-*-helvetica-bold-r-normal-*-*-80-*-*-p-*-iso8859-1'); 
+        $this->_setStyle('documentation_package_label'   ,'#FFFFFF','#000000',TRUE);
+        $this->_setFont('documentation_package_label','-*-helvetica-bold-r-normal-*-*-80-*-*-p-*-iso8859-1'); 
+        
          
     }
    /**
@@ -489,7 +509,7 @@ class PEAR_Frontend_Gtk extends PEAR
         }
     }
 
-    function log($msg,$command) {
+    function log($msg,$command='') {
         
         return $this->_info->show("LOG: $msg: $command");
     }

@@ -22,17 +22,24 @@
   </maintainers>
   <release>
     <version>0.1</version>
-    <date>2002-05-27</date>
+    <date>2002-06-13</date>
     <notes>Snapshot - dont expect it to work</notes>
     <state>snapshot</state>
     <filelist>
       <dir name="/" baseinstalldir="PEAR/Frontend">
       	<file role="php">Gtk.php</file>
       	<dir name="Gtk">
-           <file role="php">Packages.php</file>
-           <file role="php">Summary.php</file>
-	   <file role="php">Install.php</file>
-  	       <file role="php">installer.glade</file>
+            <file role="php">Config.php</file>
+            <file role="php">DirSelect.php</file>
+	    <file role="php">Documentation.php</file>
+            <file role="php">Info.php</file>
+            <file role="php">Install.php</file>
+            <file role="php">PackageData.php</file>
+            <file role="php">Packages.php</file>
+            <file role="php">Summary.php</file>
+            <file role="php">WidgetHTML.php</file>
+            <file role="php">installer.glade</file>
+           
            <dir name="xpm">
 	     <file role="php">black_close_icon.xpm</file>
              <file role="php">check_no.xpm</file>
@@ -45,7 +52,9 @@
   	     <file role="php">nav_documentation.xpm</file>        
    	     <file role="php">nav_installer.xpm</file>          
              <file role="php">package.xpm</file>   
-	    <file role="php">pear.xpm</file>                
+	     <file role="php">pear.xpm</file>                
+             <file role="php">stock_delete-16.xpm</file>
+             <file role="php">stock_delete-outline-16.xpm</file>
            </dir> 
         </dir> 
       </dir>	
@@ -54,9 +63,9 @@
   <changelog>
     <release>
       <version>0.1</version>
-      <date>2002-05-27</date>
+      <date>2002-06-13</date>
       <notes>Snapshot - dont expect it to work</notes>
-      <state>experimental</state>
+      <state>snapshot</state>
     </release>
   </changelog>
 </package>

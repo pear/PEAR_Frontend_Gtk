@@ -20,7 +20,7 @@
 */
 
 /**
- * Gtk Frontend -Directory Selection
+ * Gtk Frontend - Pop up messages at present
  *
  * @author Alan Knowles <alan@akbkhome.com>
  */
