@@ -71,16 +71,17 @@ class PEAR_Frontend_Gtk_Packages {
         // get available
         if (!$this->_available_packages) {
             $r = new PEAR_Remote($this->ui->config);
-            $this->_available_packages = $r->call('package.listAll', true);
-            if (PEAR::isError($this->_available_packages)) {
-                // whats the official way to hanlde this?
-                echo $this->_available_packages->message . '\n';
-                exit;
-                
+            $packages = $r->call('package.listAll', true);
+            if (PEAR::isError($packages)) {
+                $this->ui->displayFatalError($packages);
+                return;
             }
+            $this->_available_packages = $packages;
         }
+        
       
         // merge available
+        
         foreach ($this->_available_packages as  $name => $info) {
             // installed already?
             $info['package'] = $name;
@@ -100,7 +101,7 @@ class PEAR_Frontend_Gtk_Packages {
             }
         }
         ksort($this->_package_status);
-        echo "FINISHED LOADING DATA";
+        
     }            
     
     
@@ -153,7 +154,7 @@ documents.
             if ($s && !$parent && ($ar[0] != $name)) {
                 // make a parent node
                 
-                echo "making node $s";
+                
                 $this->_nodes[$s] = $this->widget->insert_node(
                         NULL, NULL, //parent, sibling
                         array($s, '','','','',''),
@@ -342,11 +343,9 @@ documents.
     function loadRemotePackages () {
         $r = new PEAR_Remote($this->ui->config);
         $remote = $r->call('package.listAll', true);
-        if (PEAR::isError($packagear)) {
-            // whats the official way to hanlde this?
-            echo $this->_available_packages->message . '\n';
-            exit;
-            
+        if (PEAR::isError($remote)) {
+            $this->ui->displayFatalError($remote);
+            return;
         }
         foreach ($remote as  $name => $packagear) {
             $package = PEAR_Frontend_Gtk_PackageData::staticNewFromArray($packagear);
@@ -392,7 +391,6 @@ documents.
             $ret[] = &$this->packages[$packagename];
         }
         return $ret;
-    
     }
     
     function &getRemoveQueue() {
