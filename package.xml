@@ -28,10 +28,23 @@
   </maintainers>
    <release>
       <version>0.4.0</version>
-      <date>2005-02-01</date>
-      <notes>Implement channels, support PEAR 1.4.0</notes>
+      <date>2005-03-14</date>
+      <notes>
+      
+        
+          Implement channels, support PEAR 1.4.0 (Greg Beaver)
+          Tidy up logging a little.
+          
+      </notes>
       <state>beta</state>
+    
+    
+    
+    
+    
+   </release> 
     <filelist>
+    
       <dir name="/" baseinstalldir="PEAR/Frontend">
       	<file role="php">Gtk.php</file>
       	<dir name="Gtk" role="php">
@@ -65,7 +78,7 @@
         </dir> 
       </dir>	
     </filelist>
-  </release>
+  
   <changelog>
     <release>
       <version>0.3</version>
