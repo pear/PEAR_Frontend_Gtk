@@ -1263,7 +1263,7 @@
 	  <widget>
 	    <class>GtkHButtonBox</class>
 	    <name>hbuttonbox2</name>
-	    <layout_style>GTK_BUTTONBOX_END</layout_style>
+	    <layout_style>GTK_BUTTONBOX_EDGE</layout_style>
 	    <spacing>30</spacing>
 	    <child_min_width>85</child_min_width>
 	    <child_min_height>27</child_min_height>
@@ -1277,8 +1277,21 @@
 
 	    <widget>
 	      <class>GtkButton</class>
-	      <name>button18</name>
-	      <sensitive>False</sensitive>
+	      <name>config_reset</name>
+	      <can_default>True</can_default>
+	      <can_focus>True</can_focus>
+	      <signal>
+		<name>clicked</name>
+		<handler>_loadConfig</handler>
+		<last_modification_time>Fri, 31 May 2002 06:13:05 GMT</last_modification_time>
+	      </signal>
+	      <label>Reset</label>
+	      <relief>GTK_RELIEF_NORMAL</relief>
+	    </widget>
+
+	    <widget>
+	      <class>GtkButton</class>
+	      <name>config_save</name>
 	      <can_default>True</can_default>
 	      <can_focus>True</can_focus>
 	      <label>Save</label>
@@ -1310,6 +1323,206 @@
 	<expand>False</expand>
 	<fill>False</fill>
       </child>
+    </widget>
+  </widget>
+</widget>
+
+<widget>
+  <class>GtkDialog</class>
+  <name>dir_selection</name>
+  <width>200</width>
+  <height>400</height>
+  <visible>False</visible>
+  <signal>
+    <name>delete_event</name>
+    <handler>_onDirSelectionCancel</handler>
+    <last_modification_time>Fri, 31 May 2002 03:41:05 GMT</last_modification_time>
+  </signal>
+  <signal>
+    <name>destroy</name>
+    <handler>_onDirSelectionCancel</handler>
+    <last_modification_time>Fri, 31 May 2002 05:50:41 GMT</last_modification_time>
+  </signal>
+  <title>dialog1</title>
+  <type>GTK_WINDOW_DIALOG</type>
+  <position>GTK_WIN_POS_MOUSE</position>
+  <modal>True</modal>
+  <default_width>200</default_width>
+  <allow_shrink>False</allow_shrink>
+  <allow_grow>True</allow_grow>
+  <auto_shrink>False</auto_shrink>
+
+  <widget>
+    <class>GtkVBox</class>
+    <child_name>Dialog:vbox</child_name>
+    <name>dialog-vbox1</name>
+    <homogeneous>False</homogeneous>
+    <spacing>0</spacing>
+
+    <widget>
+      <class>GtkHBox</class>
+      <child_name>Dialog:action_area</child_name>
+      <name>dialog-action_area1</name>
+      <border_width>5</border_width>
+      <homogeneous>True</homogeneous>
+      <spacing>5</spacing>
+      <child>
+	<padding>0</padding>
+	<expand>False</expand>
+	<fill>True</fill>
+	<pack>GTK_PACK_END</pack>
+      </child>
+
+      <widget>
+	<class>GtkHButtonBox</class>
+	<name>hbuttonbox3</name>
+	<layout_style>GTK_BUTTONBOX_END</layout_style>
+	<spacing>5</spacing>
+	<child_min_width>85</child_min_width>
+	<child_min_height>27</child_min_height>
+	<child_ipad_x>7</child_ipad_x>
+	<child_ipad_y>0</child_ipad_y>
+	<child>
+	  <padding>0</padding>
+	  <expand>True</expand>
+	  <fill>True</fill>
+	</child>
+
+	<widget>
+	  <class>GtkButton</class>
+	  <name>button19</name>
+	  <can_default>True</can_default>
+	  <can_focus>True</can_focus>
+	  <signal>
+	    <name>clicked</name>
+	    <handler>_onDirSelectionOk</handler>
+	    <last_modification_time>Fri, 31 May 2002 03:43:58 GMT</last_modification_time>
+	  </signal>
+	  <label>OK</label>
+	  <relief>GTK_RELIEF_NORMAL</relief>
+	</widget>
+
+	<widget>
+	  <class>GtkButton</class>
+	  <name>button20</name>
+	  <can_default>True</can_default>
+	  <can_focus>True</can_focus>
+	  <signal>
+	    <name>clicked</name>
+	    <handler>_onDirSelectionCancel</handler>
+	    <last_modification_time>Fri, 31 May 2002 03:35:53 GMT</last_modification_time>
+	  </signal>
+	  <label>Cancel</label>
+	  <relief>GTK_RELIEF_NORMAL</relief>
+	</widget>
+      </widget>
+    </widget>
+
+    <widget>
+      <class>GtkVBox</class>
+      <name>vbox19</name>
+      <border_width>5</border_width>
+      <homogeneous>False</homogeneous>
+      <spacing>5</spacing>
+      <child>
+	<padding>0</padding>
+	<expand>True</expand>
+	<fill>True</fill>
+      </child>
+
+      <widget>
+	<class>GtkOptionMenu</class>
+	<name>dir_selection_optionmenu</name>
+	<border_width>5</border_width>
+	<can_focus>True</can_focus>
+	<items></items>
+	<initial_choice>0</initial_choice>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
+
+      <widget>
+	<class>GtkScrolledWindow</class>
+	<name>scrolledwindow15</name>
+	<hscrollbar_policy>GTK_POLICY_ALWAYS</hscrollbar_policy>
+	<vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
+	<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+	<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+	<child>
+	  <padding>0</padding>
+	  <expand>True</expand>
+	  <fill>True</fill>
+	</child>
+
+	<widget>
+	  <class>GtkCList</class>
+	  <name>dir_selection_clist</name>
+	  <can_focus>True</can_focus>
+	  <signal>
+	    <name>select_row</name>
+	    <handler>_onDirListSelectRow</handler>
+	    <last_modification_time>Fri, 31 May 2002 03:37:01 GMT</last_modification_time>
+	  </signal>
+	  <signal>
+	    <name>button_press_event</name>
+	    <handler>_onDirListClick</handler>
+	    <last_modification_time>Fri, 31 May 2002 03:37:34 GMT</last_modification_time>
+	  </signal>
+	  <columns>1</columns>
+	  <column_widths>80</column_widths>
+	  <selection_mode>GTK_SELECTION_BROWSE</selection_mode>
+	  <show_titles>True</show_titles>
+	  <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+	  <widget>
+	    <class>GtkLabel</class>
+	    <child_name>CList:title</child_name>
+	    <name>label62</name>
+	    <label>Directories</label>
+	    <justify>GTK_JUSTIFY_CENTER</justify>
+	    <wrap>False</wrap>
+	    <xalign>0</xalign>
+	    <yalign>0.5</yalign>
+	    <xpad>0</xpad>
+	    <ypad>0</ypad>
+	  </widget>
+	</widget>
+      </widget>
+
+      <widget>
+	<class>GtkLabel</class>
+	<name>label63</name>
+	<label>Selection:</label>
+	<justify>GTK_JUSTIFY_CENTER</justify>
+	<wrap>False</wrap>
+	<xalign>0</xalign>
+	<yalign>0.5</yalign>
+	<xpad>0</xpad>
+	<ypad>0</ypad>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
+
+      <widget>
+	<class>GtkEntry</class>
+	<name>dir_selection_entry</name>
+	<can_focus>True</can_focus>
+	<editable>False</editable>
+	<text_visible>True</text_visible>
+	<text_max_length>0</text_max_length>
+	<text></text>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
     </widget>
   </widget>
 </widget>

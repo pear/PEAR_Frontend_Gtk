@@ -1,4 +1,4 @@
-e<?php
+<?php
 /*
   +----------------------------------------------------------------------+
   | PHP Version 4                                                        |
@@ -13,7 +13,7 @@ e<?php
   | obtain it through the world-wide-web, please send a note to          |
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
-  | Author: Stig Sæther Bakken <ssb@fast.no>                             |
+  | Author: Alan Knowles <alan@akbkhome.com>                             |
   +----------------------------------------------------------------------+
 
   $Id$
@@ -214,12 +214,9 @@ class PEAR_Frontend_Gtk extends PEAR
         $installer_logo->show();
         
         /* configuration loading */
-          
-        $this->_clearConfig();
-        $cmd = PEAR_Command::factory('config-show',$this->config);
-        $cmd->ui = &$this;
-        $cmd->run('config-show' ,'', array());
         
+        $this->_loadConfig();
+       
         $this->_setStyle('config_logo','#000000','#339900',TRUE);
         $this->_setStyle('config_logo_text','#FFFFFF','#339900'); 
         
@@ -320,141 +317,19 @@ class PEAR_Frontend_Gtk extends PEAR
     var $_logo_pixmap; // the base to draw pixmaps onto...
     
 
+    function on_expand_all_activate() {
+        $this->_package_list->widget->expand_recursive();
+    }
 
-
-    
-
-
-    function _buildConfig(&$array) {
-        if (!$array) return;
-        foreach ($array as $v) 
-            $this->_buildConfigItem($v[0],$v[1]);
-
+    function on_collapse_all_activate() {
+        $this->_package_list->widget->collapse_recursive();
     }
     
-    function _buildConfigItem($k,$v) {
-        echo "BUIDLING CONF ITME $k $v\n";
-        $group = $this->config->getGroup($k);
-        $gtktable =  $this->_getConfigTab($group);
-        $prompt = $this->config->getPrompt($k);
-        $gtklabel = &new GtkLabel();
-        $gtklabel->set_text($prompt);
-        $gtklabel->set_justify(GTK_JUSTIFY_LEFT);
-        $gtklabel->set_alignment(0.0, 0.5);
-        $gtklabel->show();
-        $r = $gtktable->nrows;
-        $gtktable->attach($gtklabel, 0, 1, $r, $r+1, GTK_FILL,GTK_FILL);
-        if ($v == '<not set>') 
-            $v = '';
-        
-        $type = $this->config->getType($k);
-        switch ($type) {
-            case 'string':
-            case 'password':
-            case 'int': // umask: should really be checkboxes..
-                $gtkentry = &new GtkEntry();
-                $gtkentry->set_text($v);
-                
-                $gtkentry->connect_object_after('enter_notify_event',
-                    array(&$this,'_setConfigHelp'),$this->config->getDocs($k));
-                
-                if ($type == 'password')
-                    $gtkentry->set_visibility(FALSE);
-                $gtkentry->show();
-                $gtktable->attach($gtkentry, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
-                break;
-            case 'directory':    
-                $gtkentry = &new GtkEntry();
-                $gtkentry->set_text($v);
-                $gtkentry->connect_object_after('enter_notify_event',
-                    array(&$this,'_setConfigHelp'),$this->config->getDocs($k));
-              
-                $gtkentry->show();
-                $gtktable->attach($gtkentry, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
-                $gtkbutton = &new GtkButton('...');
-                $gtkbutton->show();
-                $gtktable->attach($gtkbutton, 2, 3, $r, $r+1, GTK_SHRINK,GTK_SHRINK);
-                break;
-            case 'set':
-                $options = $this->config->getSetValues($k);
-                $gtkmenu = &new GtkMenu();
-                $items = array();
-                $sel = 0;
-                foreach($options as $i=>$option) {
-                    $items[$i] = &new GtkMenuItem($option);
-                    //$items[$i]->connect('activate', 'echo_activated', $labels[$i], $pos[$i], 
-                    $gtkmenu->append($items[$i]);
-                    if ($option == $v) 
-                        $sel = $i;
-                }
-                $gtkmenu->set_active($sel);
-                $gtkmenu->show_all();
-                $gtkoptionmenu = &new GtkOptionMenu();
-                $gtkoptionmenu->set_menu($gtkmenu);
-                $gtkoptionmenu->connect_object_after('enter_notify_event',
-                    array(&$this,'_setConfigHelp'),$this->config->getDocs($k));
-              
-                $gtkoptionmenu->show();
-                $gtktable->attach($gtkoptionmenu, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
-                break;
-            // debug: shourd  really be 
-            case 'integer': // debug : should really be a set?
-                $gtkadj = &new GtkAdjustment($v, 1.0, 3.0, 1.0, 1.0, 0.0);
-                $gtkspinbutton = &new GtkSpinButton($gtkadj);
-                $gtkspinbutton->show();
-                $gtkspinbutton->connect_object_after('enter_notify_event',
-                    array(&$this,'_setConfigHelp'),$this->config->getDocs($k));
-            
-                $gtktable->attach($gtkspinbutton, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
-                break;
-            default:
-                echo "$prompt : ". $this->config->getType($k) . "\n";    
-        }
-        
-    }
-  
-    function _setConfigHelp($event,$string) {
-        $this->_widget_config_help->set_text($string);
-    }
-  
-    var $_configTabs = array(); // associative array of configGroup -> GtkTable
- 
-    function &_getConfigTab($group) {
-        if (@$this->_configTabs[$group]) 
-            return $this->_configTabs[$group];
-        $this->_configTabs[$group] = &new GtkTable();
-        $this->_configTabs[$group]->set_row_spacings(10);
-        $this->_configTabs[$group]->set_col_spacings(10);
-        $this->_configTabs[$group]->set_border_width(15);
-        $this->_configTabs[$group]->show();
-        $gtklabel = &new GtkLabel($group);
-
-        $gtklabel->show();
-        $this->_widget_config_notebook->append_page($this->_configTabs[$group],$gtklabel);
-        return $this->_configTabs[$group];
+    function on_quit() {
+        gtk::main_quit();
+        exit;
     }
 
-    function _clearConfig() {
-        if ($this->_configTabs) 
-            foreach (array_keys($this->_configTabs) as $k) {
-                $page = $this->_widget_config_notebook->page_num($this->_configTabs[$k]);
-                $this->_widget_config_notebook->remove_page($page);
-                $this->_configTabs[$k]->destroy();
-            }
-        
-        // delete any other pages;
-        if ($widget = $this->_widget_config_notebook->get_nth_page(0)) {
-            $this->_widget_config_notebook->remove_page(0);
-            $widget->destroy();
-        }
-    }
-    function _callbackShowInstaller() {
-        $this->_widget_pages->set_page(0);
-    }
-    function _callbackShowConfig() {
-        $this->_widget_pages->set_page(2);
-    }
-    
     var $_activeDownloadSize =0;
     var $_downloadTotal=1;
     var $_downloadPos=0;
@@ -492,23 +367,285 @@ class PEAR_Frontend_Gtk extends PEAR
     }
     
 
+    /*---------------- Configuration Building stuff -----------------------*/
 
-    function on_expand_all_activate() {
-        $this->_package_list->widget->expand_recursive();
-    }
 
-    function on_collapse_all_activate() {
-        $this->_package_list->widget->collapse_recursive();
+    function _buildConfig(&$array) {
+        if (!$array) return;
+        foreach ($array as $v) 
+            $this->_buildConfigItem($v[0],$v[1]);
+
     }
     
-    function on_quit() {
-        gtk::main_quit();
-        exit;
+    function _buildConfigItem($k,$v) {
+        echo "BUIDLING CONF ITME $k $v\n";
+        $group = $this->config->getGroup($k);
+        $gtktable =  $this->_getConfigTab($group);
+        $prompt = $this->config->getPrompt($k);
+        $gtklabel = &new GtkLabel();
+        $gtklabel->set_text($prompt);
+        $gtklabel->set_justify(GTK_JUSTIFY_LEFT);
+        $gtklabel->set_alignment(0.0, 0.5);
+        $gtklabel->show();
+        $r = $gtktable->nrows;
+        $gtktable->attach($gtklabel, 0, 1, $r, $r+1, GTK_FILL,GTK_FILL);
+        if ($v == '<not set>') 
+            $v = '';
+        
+        $type = $this->config->getType($k);
+        switch ($type) {
+            case 'string':
+            case 'password':
+            case 'int': // umask: should really be checkboxes..
+                $gtkentry = &new GtkEntry();
+                $gtkentry->set_text($v);
+                
+                $gtkentry->connect_object_after('enter_notify_event',
+                    array(&$this,'_setConfigHelp'),$this->config->getDocs($k));
+                $gtkentry->connect_object_after('changed', array(&$this,'_ActivateConfigSave'));
+                if ($type == 'password')
+                    $gtkentry->set_visibility(FALSE);
+                $gtkentry->show();
+                $gtktable->attach($gtkentry, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
+                break;
+            case 'directory':    
+                $gtkentry = &new GtkEntry();
+                $gtkentry->set_text($v);
+                $gtkentry->set_editable(FALSE);
+                $gtkentry->connect_object_after('enter_notify_event',
+                    array(&$this,'_setConfigHelp'),$this->config->getDocs($k));
+                // store in object data the configuration tag
+                $gtkentry->set_data('key',$k);
+                $gtkentry->show();
+                $gtktable->attach($gtkentry, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
+                $gtkbutton = &new GtkButton('...');
+                $gtkbutton->connect_object_after('clicked', array(&$this,'_onDirSelect'),$gtkentry);
+                $gtkbutton->show();
+                $gtktable->attach($gtkbutton, 2, 3, $r, $r+1, GTK_SHRINK,GTK_SHRINK);
+                break;
+            case 'set':
+                $options = $this->config->getSetValues($k);
+                $gtkmenu = &new GtkMenu();
+                $items = array();
+                $sel = 0;
+                foreach($options as $i=>$option) {
+                    $items[$i] = &new GtkMenuItem($option);
+                    //$items[$i]->connect('activate', 'echo_activated', $labels[$i], $pos[$i], 
+                    $gtkmenu->append($items[$i]);
+                    if ($option == $v) 
+                        $sel = $i;
+                }
+                $gtkmenu->set_active($sel);
+                $gtkmenu->show_all();
+                $gtkoptionmenu = &new GtkOptionMenu();
+                $gtkoptionmenu->set_menu($gtkmenu);
+                $gtkoptionmenu->connect_object_after('enter_notify_event',
+                    array(&$this,'_setConfigHelp'),$this->config->getDocs($k));
+              
+                $gtkoptionmenu->show();
+                $gtktable->attach($gtkoptionmenu, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
+                break;
+            // debug: shourd  really be 
+            case 'integer': // debug : should really be a set?
+                $gtkadj = &new GtkAdjustment($v, 0.0, 3.0, 1.0, 1.0, 0.0);
+                $gtkspinbutton = &new GtkSpinButton($gtkadj);
+                $gtkspinbutton->show();
+                $gtkspinbutton->connect_object_after('enter_notify_event',
+                    array(&$this,'_setConfigHelp'),$this->config->getDocs($k));
+            
+                $gtktable->attach($gtkspinbutton, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
+                break;
+            default:
+                echo "$prompt : ". $this->config->getType($k) . "\n";    
+        }
+        
+    }
+  
+    function _setConfigHelp($event,$string) {
+        $this->_widget_config_help->set_text($string);
+    }
+  
+    var $_configTabs = array(); // associative array of configGroup -> GtkTable
+ 
+    function &_getConfigTab($group) {
+        if (@$this->_configTabs[$group]) 
+            return $this->_configTabs[$group];
+        $this->_configTabs[$group] = &new GtkTable();
+        $this->_configTabs[$group]->set_row_spacings(10);
+        $this->_configTabs[$group]->set_col_spacings(10);
+        $this->_configTabs[$group]->set_border_width(15);
+        $this->_configTabs[$group]->show();
+        $gtklabel = &new GtkLabel($group);
+
+        $gtklabel->show();
+        $this->_widget_config_notebook->append_page($this->_configTabs[$group],$gtklabel);
+        return $this->_configTabs[$group];
     }
 
+    function _loadConfig($widget=NULL,$what=NULL) {
+        if ($this->_configTabs) 
+            foreach (array_keys($this->_configTabs) as $k) {
+                $page = $this->_widget_config_notebook->page_num($this->_configTabs[$k]);
+                $this->_widget_config_notebook->remove_page($page);
+                $this->_configTabs[$k]->destroy();
+            }
+        
+        // delete any other pages;
+        if ($widget = $this->_widget_config_notebook->get_nth_page(0)) {
+            $this->_widget_config_notebook->remove_page(0);
+            $widget->destroy();
+        }
+        $this->_configTabs = array();
+        $cmd = PEAR_Command::factory('config-show',$this->config);
+        $cmd->ui = &$this;
+        $cmd->run('config-show' ,'', array());
+        $this->_widget_config_save->set_sensitive(FALSE); 
+        $this->_widget_config_reset->set_sensitive(FALSE);
+    }
+    function _callbackShowInstaller() {
+        $this->_widget_pages->set_page(0);
+    }
+    function _callbackShowConfig() {
+        $this->_widget_pages->set_page(2);
+    }
+    
+    
 
-
-
+    function _ActivateConfigSave() {
+        $this->_widget_config_save->set_sensitive(TRUE); 
+        $this->_widget_config_reset->set_sensitive(TRUE);
+    }
+    /*---------------- Dir Seleciton stuff -----------------------*/
+    var $_DirSelectActiveWidget = NULL;
+    /**
+    * Callback when a directory button is pressed
+    *
+    * Displays the directory dialog, fills in the data etc.
+    * 
+    * @param   object gtkentry   The text entry to fill in on closing
+    *
+    */
+  
+    function _onDirSelect($widget) {
+        // set the title!!
+        $this->_DirSelectActiveWidget = &$widget;
+        $prompt = 'xxx';
+        $prompt = $this->config->getPrompt($widget->get_data('key'));
+        $this->_widget_dir_selection->set_title($prompt);
+        
+        $curvalue = $widget->get_text();
+        // load the pulldown
+        $this->_DirSelectSetDir(dirname($curvalue), basename($curvalue));
+        $this->_widget_dir_selection_entry->set_text($curvalue);
+        
+        
+        
+        
+        $this->_widget_dir_selection->show();
+    
+    }
+    
+    var $_DirSelectRows = array();
+    
+    function _DirSelectSetDir($directory, $file='.') {
+    
+        $parts = explode(DIRECTORY_SEPARATOR, $directory);
+        $disp = array();
+        $i=0;
+        $items = array();
+        $gtkmenu = &new GtkMenu();
+        foreach($parts as $dirpart) {
+            $disp[] = $dirpart;
+            $dir = implode(DIRECTORY_SEPARATOR,$disp);
+            if (!$dir && DIRECTORY_SEPARATOR == '/') $dir = '/';
+            if (!$dir) continue;
+            $items[$i] = &new GtkMenuItem($dir);
+            $items[$i]->connect_object_after('activate', array(&$this,'_DirSelectSetDir'),$dir);
+            $gtkmenu->append($items[$i]);
+            $i++;
+        }    
+        $gtkmenu->set_active($i-1);
+        $gtkmenu->show_all();
+        $this->_widget_dir_selection_optionmenu->set_menu($gtkmenu);
+        $base = $directory;
+        
+        $this->_widget_dir_selection_clist->select_row(0,0);
+        $this->_widget_dir_selection_clist->freeze();
+        $this->_widget_dir_selection_clist->clear();
+        
+        clearstatcache();
+        $dh = opendir($base);
+        $dirs = array();
+        while (($dir = readdir($dh)) !== FALSE) {
+            if (!is_dir($base.DIRECTORY_SEPARATOR.$dir)) continue;
+            $dirs[] = $dir;
+        }
+        sort($dirs);
+        $this->_DirSelectRows = array();
+        $sel =0;
+        $i=0;
+        foreach($dirs as $dir) {
+            $this->_widget_dir_selection_clist->append(array($dir)); 
+            $this->_DirSelectRows[] = realpath($base.DIRECTORY_SEPARATOR.$dir);
+            if ($dir == $file)
+                $sel = $i;
+            $i++;
+        }
+        $this->_widget_dir_selection_clist->thaw();  
+        if ($file != '.') {
+            
+            $this->_widget_dir_selection_clist->select_row($sel,0);
+            $this->_widget_dir_selection_clist->moveto($i,0,0,0);
+            $this->_widget_dir_selection_entry->set_text($directory);
+        } else {
+            
+            $this->_DirListBlockSel = TRUE;
+            $this->_widget_dir_selection_clist->select_row(0,0);
+             $this->_DirListBlockSel = TRUE;
+        }
+        
+       
+    }
+    
+    var $_DirListBlockSel = FALSE;
+    
+    function _onDirListSelectRow($widget,$row) {
+        
+        if ($this->_DirListBlockSel) { 
+          
+            $this->_DirListBlockSel = FALSE;
+            $widget->select_row(0,0);
+            return;
+        }
+        if ($row < 0) return;
+        $this->_widget_dir_selection_entry->set_text($this->_DirSelectRows[$row]);
+    }
+    function _onDirListClick($widget,$event) {
+     
+        if ($event->type != 5)  return;
+     
+        $this->_DirSelectSetDir($this->_widget_dir_selection_entry->get_text());
+    }
+    
+    function _onDirSelectionCancel() {
+        $this->_widget_dir_selection->hide();
+        return TRUE;
+    }
+    
+    function _onDirSelectionOk() { 
+        if (!$this->_DirSelectActiveWidget) return;
+        $new= $this->_widget_dir_selection_entry->get_text();
+        $old= $this->_DirSelectActiveWidget->get_text();
+        
+        if ($new != $old) {
+            $this->_DirSelectActiveWidget->set_text($new);
+            $this->_ActivateConfigSave();
+        }
+        
+        $this->_DirSelectActiveWidget = NULL;
+        $this->_widget_dir_selection->hide();
+    }
+    
     //-------------------------- BASE Installer methods --------------------------
     
     function outputData($data,$command ){
