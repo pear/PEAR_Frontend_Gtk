@@ -38,18 +38,30 @@ class PEAR_Frontend_Gtk extends PEAR
     var $omode = 'plain';
     var $params = array();
     
-     /**
-     * glade object 
-     * @var object GladeXML
-     * @access private
-     */
+    /**
+    * master glade object 
+    * @var object GladeXML
+    * @access private
+    */
     var $_glade;
+    /**
+    * current config? - is this really neccessay - just use Config::singleton?
+    * @var object PEAR_Config
+    * @access private
+    */
     
     var $config; // object PEAR_Config
     // }}}
 
     // {{{ constructor
-
+    /**
+    * Gtk Frontend Constructor
+    *
+    * Makes calls to load the glade file, and connect signals.
+    *
+    * @access private
+    */
+    
     function PEAR_Frontend_Gtk()
     {
         parent::PEAR();
@@ -61,11 +73,19 @@ class PEAR_Frontend_Gtk extends PEAR
         $this->_initInterface();
     }
     // }}}
-    /*
-    * load all the named widgets from the glade file into this class as _widget_NAME
-    * 
-    */
-    
+    /**
+    * Load the Glade file (and automake widget vars and connect signals)
+    *
+    * Loads the glade file and also maps all widgets 'NAME' in glade file 
+    * to _widget_NAME
+    *
+    * Straight maps all handles to 'this object'
+    *
+    * #TODO  - base the widgets on 'documented/defined widgets in this file' rather than 
+    * grepping the glade file...
+    *
+    * @access private
+    */ 
     
     function _loadGlade() {
         
@@ -106,19 +126,11 @@ class PEAR_Frontend_Gtk extends PEAR
      * @access private
      */
     var $_install; 
-    
-    
-    
-    
-    
-    
-    /*
-    * add the callbacks 
-    * - needs to be simplified later using callbacks in the glade file
-    * - but for development get a better idea..
-    */
-    
-    
+    /**
+    * Load and initialize the sub modules
+    *
+    * @access private
+    */ 
     function _initInterface() {
         // must be a better way - still needs to read -c -C optss
         $this->config = &PEAR_Config::singleton('','');
@@ -137,21 +149,24 @@ class PEAR_Frontend_Gtk extends PEAR
         
         $this->_widget_window->connect_after('realize',array(&$this,'_callbackWindowConfigure'));
         $this->_widget_window->connect_after('configure_event',array(&$this,'_callbackWindowConfigure'));
-        
-       
-        
+
         $this->_widget_details_area->hide();
         $this->_widget_window->show();
     
     }
-    
-    var $_windowConfiguredFlag = FALSE;
-    /*
-    * window realized - load pixmaps etc.
-    *  
+    /**
+    * has the window been configured (eg. pixmaps loaded etc.)
+    * @var boolean
+    * @access private
     */
-
-
+    var $_windowConfiguredFlag = FALSE;
+      
+    /**
+    * Set up images, styles etc.
+    *
+    * @param object gtkwindow 
+    * @access private
+    */ 
     function _callbackWindowConfigure($window) {
         // must be a better way - still needs to read -c -C optss
         
@@ -223,14 +238,19 @@ class PEAR_Frontend_Gtk extends PEAR
         $config_logo = &new GtkPixmap(
             $this->_pixmaps['pear.xpm'][0],
             $this->_pixmaps['pear.xpm'][1]);
+        
         $this->_widget_config_logo->put($config_logo,0,0);
         $config_logo->show();
          
     }
-    /*
-    * load the images onto the left navbar
-    *  
-    */
+   /**
+    * Set up images, styles etc.
+    * Load an image into a button as glade does not support this!
+    *
+    * @param string widget name 
+    * @param string  icon name
+    * @access private
+    */ 
     
     function _loadButton($widgetname, $icon) {
         echo $widgetname;
@@ -260,7 +280,16 @@ class PEAR_Frontend_Gtk extends PEAR
      
     }
     
-    
+    /**
+    * Funky routine to set the style(colours) of Gtkwidgets
+    * 
+    *
+    * @param string widget name 
+    * @param string  foreground color
+    * @param string  background color
+    * @param booloean  Base style of (TRUE)existing or create a new style(FALSE)
+    * @access private
+    */ 
     function _setStyle($widgetname,$fgcolor='',$bgcolor='',$copy=FALSE) {
         echo "SET: $widgetname: $fgcolor/$bgcolor ". ((int) $copy) . "\n";
         $widget_fullname = "_widget_". $widgetname;
@@ -291,12 +320,17 @@ class PEAR_Frontend_Gtk extends PEAR
     
     
     }
-    
+    /**
+    * All the pixmaps from the xpm directory
+    * @var boolean
+    * @access private
+    */
     var $_pixmaps = array(); // associative array of filename -> pixmaps|mask array objects used by application
     
     /*
-    * initialize the pixmaps - load the into $_pixmaps[name] ->object
+    * initialize the pixmaps - load the into $this->_pixmaps[name][0|1]
     *  
+    * @param object gtkwindow the window from the realize event.
     */
     function _initPixmaps(&$window) {
         
@@ -313,26 +347,66 @@ class PEAR_Frontend_Gtk extends PEAR
                 
         }
     }
-    
-    var $_logo_pixmap; // the base to draw pixmaps onto...
-    
-
+     
+    /*
+    * Menu Callback - expand all
+    */
     function on_expand_all_activate() {
         $this->_package_list->widget->expand_recursive();
     }
-
+    /*
+    * Menu Callback - colllapse all
+    */
     function on_collapse_all_activate() {
         $this->_package_list->widget->collapse_recursive();
     }
-    
+    /*
+    * Menu Callback - Exit/Quit
+    */
     function on_quit() {
         gtk::main_quit();
         exit;
     }
-
+    /*
+    * Left button callback - goto installer
+    */
+    function _callbackShowInstaller() {
+        $this->_widget_pages->set_page(0);
+    }
+    /*
+    * Left button callback - goto config page
+    */
+    
+    function _callbackShowConfig() {
+        $this->_widget_pages->set_page(2);
+    }
+    /*-------------------------------------Downloading --------------------------------*/
+    /**
+    * size of current file being downloaded
+    * @var int
+    * @access private
+    */
     var $_activeDownloadSize =0;
+    /**
+    * Total number of files that are being downloaded
+    * @var int
+    * @access private
+    */
+    
     var $_downloadTotal=1;
+    /**
+    * How many files have been downloaded in this 'session'
+    * @var int
+    * @access private
+    */
     var $_downloadPos=0;
+    
+    /*
+    * PEAR_Command Callback - used by downloader
+    * @param string message type
+    * @param string message data
+    */
+    
     function _downloadCallback($msg,  $params) {
          
         switch ($msg) {
@@ -366,10 +440,14 @@ class PEAR_Frontend_Gtk extends PEAR
         
     }
     
-
+  
     /*---------------- Configuration Building stuff -----------------------*/
 
-
+    /**
+    * Build the widgets based on the return 'data' array from config-show
+    *
+    * @param array see config-show for more details.
+    */
     function _buildConfig(&$array) {
         if (!$array) return;
         foreach ($array as $group=>$items) 
@@ -378,7 +456,12 @@ class PEAR_Frontend_Gtk extends PEAR
             }
 
     }
-    
+    /**
+    * Build the widgets for a configuration item
+    *
+    * @param string  configuration 'key'
+    * @param string  configuration 'value'
+    */
     function _buildConfigItem($k,$v) {
         echo "BUIDLING CONF ITME $k $v\n";
         $group = $this->config->getGroup($k);
@@ -462,13 +545,29 @@ class PEAR_Frontend_Gtk extends PEAR
         }
         
     }
-  
+    /**
+    * Show the help text for a widget
+    *
+    * @param  object gtkevent            name of group tab
+    * @param  string                     help text
+    */
     function _setConfigHelp($event,$string) {
         $this->_widget_config_help->set_text($string);
     }
-  
+    /**
+    * The GtkTables relating to the groups
+    *
+    * @var array  associative array of groupname -> gtktable
+    * @access private
+    */
     var $_configTabs = array(); // associative array of configGroup -> GtkTable
- 
+    /**
+    * Get (or Make) A 'Group' Config Tab on the config notebook
+    *
+    * @param  string            name of group tab
+    * @param  string            no idea yet!
+    * @return object GtkTable   table which config elements are added to.
+    */
     function &_getConfigTab($group) {
         if (@$this->_configTabs[$group]) 
             return $this->_configTabs[$group];
@@ -483,7 +582,14 @@ class PEAR_Frontend_Gtk extends PEAR
         $this->_widget_config_notebook->append_page($this->_configTabs[$group],$gtklabel);
         return $this->_configTabs[$group];
     }
-
+    /**
+    * Load Configuration into widgets (Initialize)
+    *
+    * Clear current config tabs, and calls the Command Show-config
+    *
+    * @param  object getbutton  from the reset button!
+    * @param  string            no idea yet!
+    */
     function _loadConfig($widget=NULL,$what=NULL) {
         if ($this->_configTabs) 
             foreach (array_keys($this->_configTabs) as $k) {
@@ -504,30 +610,35 @@ class PEAR_Frontend_Gtk extends PEAR
         $this->_widget_config_save->set_sensitive(FALSE); 
         $this->_widget_config_reset->set_sensitive(FALSE);
     }
-    function _callbackShowInstaller() {
-        $this->_widget_pages->set_page(0);
-    }
-    function _callbackShowConfig() {
-        $this->_widget_pages->set_page(2);
-    }
     
     
-
+    /**
+    * Make the Save and reset buttons pressable.
+    *
+    * @access private
+    */
     function _ActivateConfigSave() {
         $this->_widget_config_save->set_sensitive(TRUE); 
         $this->_widget_config_reset->set_sensitive(TRUE);
     }
+    
     /*---------------- Dir Seleciton stuff -----------------------*/
+    
+    /**
+    * Currently active widget to save result into (eg. gtkentry)
+    *
+    * @var object gtkentry 
+    * @access private
+    */
     var $_DirSelectActiveWidget = NULL;
     /**
-    * Callback when a directory button is pressed
+    * Display the Directory selection dialog
     *
     * Displays the directory dialog, fills in the data etc.
     * 
     * @param   object gtkentry   The text entry to fill in on closing
     *
     */
-  
     function _onDirSelect($widget) {
         // set the title!!
         $this->_DirSelectActiveWidget = &$widget;
@@ -539,18 +650,30 @@ class PEAR_Frontend_Gtk extends PEAR
         // load the pulldown
         $this->_DirSelectSetDir(dirname($curvalue), basename($curvalue));
         $this->_widget_dir_selection_entry->set_text($curvalue);
-        
-        
-        
-        
         $this->_widget_dir_selection->show();
-    
     }
     
+    /**
+    * Associated array of Row -> directory name
+    *
+    * It could be possible to get the row string using gtk calls......
+    *
+    * @var array
+    * @access private
+    */
     var $_DirSelectRows = array();
     
+    /**
+    * Load the directories into the directory list/pulldown etc.
+    *
+    * Loads the information into the popup / list of directories
+    * TODO: Windows A:D: etc. drive support  
+    *
+    * @param  string $directory name of directory to browse
+    * @param  string $file      name of file to select in list.
+    *
+    */
     function _DirSelectSetDir($directory, $file='.') {
-    
         $parts = explode(DIRECTORY_SEPARATOR, $directory);
         $disp = array();
         $i=0;
@@ -608,9 +731,26 @@ class PEAR_Frontend_Gtk extends PEAR
         
        
     }
-    
+    /**
+    * Flag to block reselecting of current row after update
+    *
+    * Introduced to attempt to fix problem that when you double click to open a 
+    * Directory, after refresh, the clist recieves a select signal on the same rows
+    * and hence attemps to select the wrong directory..
+    *
+    * @var boolean
+    * @access private
+    */
     var $_DirListBlockSel = FALSE;
-    
+    /**
+    * Initial Select Row (not double click)
+    *
+    * Makes this selected item the 'active directory'
+    *
+    * @param  string $directory name of directory to browse
+    * @param  string $row       selected line
+    *
+    */
     function _onDirListSelectRow($widget,$row) {
         
         if ($this->_DirListBlockSel) { 
@@ -622,17 +762,38 @@ class PEAR_Frontend_Gtk extends PEAR
         if ($row < 0) return;
         $this->_widget_dir_selection_entry->set_text($this->_DirSelectRows[$row]);
     }
+    
+    /**
+    * Callback when the list of directories is clicked
+    *
+    * Used to find the double click to open it.
+    *
+    * @param   object gtkclist  
+    * @param   object gdkevent   
+    *
+    */
+
     function _onDirListClick($widget,$event) {
-     
         if ($event->type != 5)  return;
-     
         $this->_DirSelectSetDir($this->_widget_dir_selection_entry->get_text());
     }
-    
+    /**
+    * Callback when the cancel/destroy window is pressed
+    *
+    * has to return TRUE (see the gtk tutorial on destroy events)
+    *
+    * 
+    */
     function _onDirSelectionCancel() {
         $this->_widget_dir_selection->hide();
         return TRUE;
     }
+    /**
+    * Callback when the OK btn is pressed
+    *
+    * hide window and update original widget.
+    *
+    */
     
     function _onDirSelectionOk() { 
         if (!$this->_DirSelectActiveWidget) return;
@@ -649,7 +810,13 @@ class PEAR_Frontend_Gtk extends PEAR
     }
     
     //-------------------------- BASE Installer methods --------------------------
-    
+     /**
+    * Callback from command API, that sends data back from config-show
+    *
+    * @param   mixed data requeted by another part of this program
+    * @param   string the command that was sent to result in this
+    *
+    */
     function outputData($data,$command ){
         switch ($command) {
             case 'config-show':
