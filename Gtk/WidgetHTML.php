@@ -4,17 +4,20 @@
 
 class PEAR_Frontend_Gtk_WidgetHTML {
 
-    
+    var $_pixmap_area_x =1024;
+    var $_pixmap_area_y = 5000;
     var $_source; // raw HTML
     var $_URL; // the URL
     function loadURL($URL) { // load a file into source - for testing only
-        $this->_URL = $URL;
-        $this->_URLparse = parse_url($URL);
-        $this->_source = str_replace("\r", " ",implode('',file($URL)));
+        echo "OPENING URL $URL\n";
+        $this->_URL = trim($URL);
+        $this->_URLparse = parse_url(trim($URL));
+        $this->_source = str_replace("\r", " ",implode('',file(trim($URL))));
         //$fh = fopen('/tmp/test','w'); fwrite($fh,$this->_source ); fclose($fh);
     }
     var $_tokens = array(); // HTML Tokens id => array($tag,$attribute_string) | $string
     function tokenize() { // tokenize the HTML into $this->tokens
+        echo "TOKENIZING\n";
         $tok = strtok($this->_source,'<');
         $a[0] = $tok;
         while( $tok !== FALSE ) {
@@ -60,7 +63,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         //exit;
     }
     var $Start = FALSE; // start rering (eg. ignore headers)
-    function build($startpos,$endpos) { // read the tokens and build the line/table arrays - then display
+    function build() { // read the tokens and build the line/table arrays - then display
          
         
           $this->Start = FALSE;
@@ -100,7 +103,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         $this->td[0]['colspan'] = 1;
         $this->td[0]['rowspan'] = 1;
         $this->td[0]['table'] = 0;
-        $this->td[0]['colwidth'] = 149;
+        $this->td[0]['colwidth'] = 1;
         $this->td[0]['left'] = 0;
         $this->td[0]['right'] = $this->_area_x;
         $this->td[0]['totalcols'] = 1;
@@ -108,10 +111,10 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         $this->td[0]['line_items'] = array();
         
         $this->_makeColors('#000000','#FFFFFF');
-        $this->td[0]['gc'] =   '#000000#FFFFFF'; // background 
-        $this->td[0]['bggc'] =  '#FFFFFF#000000';
-        $this->tables[0]['gc'] =   '#000000#FFFFFF'; // background 
-        $this->tables[0]['bggc'] =  '#FFFFFF#000000';
+        $this->td[0]['gc'] =   '#FFFFFF'; // background 
+        $this->td[0]['bggc'] =  '#000000';
+        $this->tables[0]['gc'] =   '#FFFFFF'; // background 
+        $this->tables[0]['bggc'] =  '#000000';
         
         $this->td[0]['height'] = 0;
         $this->td[0]['top'] = 0;
@@ -119,8 +122,8 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         $this->tables[0]['table'][1][1]['td'] = &$this->td[0];
         $this->tables[0]['cells'] = array(0);
         $this->_nextLine("BEGIN");
-        
-        for($pos = $startpos;$pos < $endpos;$pos++) {
+        $endpos = count($this->_tokens);
+        for($pos = 0;$pos < $endpos;$pos++) {
             $item = $this->_tokens[$pos]; 
             if (is_Array($item)) {
                 $method = "push";
@@ -310,8 +313,8 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                             if (!$backgroundcolor) 
                                 $backgroundcolor = "#000000";
                             $this->_makeColors('#000000',$backgroundcolor);
-                            $this->td[0]['bggc'] = '#000000'.$backgroundcolor;
-                            $this->tables[0]['bggc'] =  '#000000'.$backgroundcolor;
+                            $this->td[0]['bggc'] =  $backgroundcolor;
+                            $this->tables[0]['bggc'] =   $backgroundcolor;
                             
                             
                             
@@ -399,15 +402,25 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                 }
             $this->output($item,$pos);
         }
-        $this->linebr('LAST LINE');   
+        $this->linebr('LAST LINE',$pos);   
         
         
         $this->_TABLEmovelines(0);
         $this->_DrawingAreaRepaint();
         $this->_area_y = $this->_lines[$this->_line]['bottom'] ;
         $this->layout->set_size($this->_area_x , $this->_area_y );
+        $this->drawing_area->size($this->_area_x,$this->_area_y);
         //$this->layout->thaw();
         //print_r($this->td);
+        if (!@$this->pixmap || ($this->_area_x > $this->_pixmap_area_x) || ($this->_area_y > $this->_pixmap_area_y)) {
+            if ($this->_area_x > $this->_pixmap_area_x) $this->_pixmap_area_x = $this->_area_x;
+            if ($this->_area_y > $this->_pixmap_area_y) $this->_pixmap_area_y = $this->_area_y;
+            if (@$this->pixmap) unset($this->pixmap);
+            echo "REMAKING PIXMAP: {$this->_area_x}\n";
+            $this->pixmap = new GdkPixmap($this->drawing_area->window,
+                $this->_pixmap_area_x ,$this->_pixmap_area_y,
+                -1);
+        }
         $this->_DrawingAreaClear();
         foreach(array_keys($this->tables) as $pos)
             $this->_drawBlock($this->tables[$pos]);
@@ -442,7 +455,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             $this->stack[$what] = array();
         if (!$attributes) $attributes = ":";
         $this->stack[$what][] = array($pos,trim($attributes));
-        $this->cur[$what] = $attributes;
+        $this->cur[$what] = trim($attributes);
         $this->curid[$what] = $pos;
         $this->_stackAttributes($attributes,$pos,'push');
             
@@ -946,43 +959,31 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             if ($c = $this->in('BGCOLOR')) 
                 $bgcolor = $c;
         }
-        //echo "$fgcolor:$bgcolor\n";
-        
-        if (!@$this->_colors[$fgcolor])
-            $this->_colors[$fgcolor] = &new GdkColor($fgcolor);
-        if (!@$this->_colors[$bgcolor])
-            $this->_colors[$bgcolor] = &new GdkColor($bgcolor);
-        
         /* GC STUFF */
-        
-        
-        $id = $fgcolor . $bgcolor;
-        
-        if (!@$this->_gcs[$id]) {
+
+        if (!@$this->_gcs[$fgcolor] || !@$this->_gcs[$bgcolor]) {
             $window = $this->drawing_area->window;
-            $this->_gcs[$id] = $window->new_gc();
             $cmap = $this->drawing_area->get_colormap();
-            $this->_gcs[$id]->foreground =  $cmap->alloc($fgcolor);
-            $this->_gcs[$id]->background =  $cmap->alloc($bgcolor);
         }
-        /* REVERSED - for background rectangle*/
-        $bgid = $bgcolor . $fgcolor;
-        if (!@$this->_gcs[$bgid]) {
-            $this->_gcs[$bgid] = $window->new_gc();
-            $this->_gcs[$bgid]->foreground =  $this->_gcs[$id]->background ;
-            $this->_gcs[$bgid]->background =  $this->_gcs[$id]->foreground;
-        }
-        $this->_gc = $id;
-        $this->_bggc = $bgid;
         
+        if (!@$this->_gcs[$fgcolor]) {
+            $this->_gcs[$fgcolor] = $window->new_gc();
+            $this->_gcs[$fgcolor]->foreground =  $cmap->alloc($fgcolor);
+        }
+        if (!@$this->_gcs[$bgcolor]) {
+            $this->_gcs[$bgcolor] = $window->new_gc();
+            $this->_gcs[$bgcolor]->foreground =  $cmap->alloc($bgcolor);
+        }
+        $this->_gc = $fgcolor;
+        $this->_bggc = $bgcolor;
         
     }
     
     /* ------------------------------ BASIC WIDGET STUFF ------------------*/
     //
     
-    var $_area_x= 1000; // default X width of Widget
-    var $_area_y= 10000; // default Y width of Widget
+    var $_area_x= 400; // default X width of Widget
+    var $_area_y= 400; // default Y width of Widget
     var $layout; // GtkLayout
     
     var $drawing_area; // GtkDrawingArea
@@ -997,21 +998,31 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         $this->layout->set_size($this->_area_x,$this->_area_y);
         $this->layout->show();
         $this->scrolledwindow->show();
+        $this->scrolledwindow->set_policy(GTK_POLICY_AUTOMATIC,GTK_POLICY_AUTOMATIC);
         $this->scrolledwindow->add($this->layout);
+        //$this->scrolledwindow->add_events(  GDK_EXPOSURE_MASK  );
+       
+       
+        define('GDK_HAND2',60);
+        define('GDK_ARROW',68);
+        define('GDK_CLOCK',26);
         
+        $this->_cursors[GDK_HAND2] = gdk::cursor_new(GDK_HAND2);
+        $this->_cursors[GDK_ARROW] = gdk::cursor_new(GDK_ARROW);
+        $this->_cursors[GDK_CLOCK] = gdk::cursor_new(GDK_CLOCK);
+         
         $this->drawing_area  = &new GtkDrawingArea();
         $this->drawing_area->size($this->_area_x,$this->_area_y);
         $this->layout->put($this->drawing_area,0,0);
         //$this->drawing_area->set_events( GDK_ALL_EVENTS_MASK);
         $this->drawing_area->show();
         
-        
+         
         $this->drawing_area->connect("configure_event",        array(&$this,"_DrawingAreaCallbackConfigure"));
         $this->drawing_area->connect("expose_event",           array(&$this,"_DrawingAreaCallbackExpose"));
         $this->drawing_area->connect('motion_notify_event',array(&$this,"_DrawingAreaMotion"));
         $this->drawing_area->connect('button_press_event', array(&$this,"_DrawingAreaPress"));
 
-       
         
         $this->drawing_area->set_events(  
               GDK_EXPOSURE_MASK
@@ -1020,14 +1031,6 @@ class PEAR_Frontend_Gtk_WidgetHTML {
 			| GDK_POINTER_MOTION_MASK
 			| GDK_POINTER_MOTION_HINT_MASK
         );
-        define('GDK_HAND2',60);
-        define('GDK_ARROW',68);
-        define('GDK_CLOCK',26);
-        
-        $this->_cursors[GDK_HAND2] = gdk::cursor_new(GDK_HAND2);
-        $this->_cursors[GDK_ARROW] = gdk::cursor_new(GDK_ARROW);
-        $this->_cursors[GDK_CLOCK] = gdk::cursor_new(GDK_CLOCK);
-       
         //$this->drawing_area->set_events( GDK_ALL_EVENTS_MASK );
        // $this->layout->add_events(   GDK_KEY_PRESS_MASK   );
             
@@ -1046,21 +1049,22 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         
        
     }                  
+     
+    
     var $pixmap; // the pixmap that everything gets drawn on
     function _DrawingAreaCallbackConfigure($widget, $event) { // the callback to create the pixmap & start building
         if (@$this->pixmap) return true;
         
-        $this->pixmap = &new GdkPixmap($widget->window,
-            $this->_area_x,$this->_area_y,
-            -1);
-        
+         
         
         $this->Start = FALSE;
-        $this->build(0,count($this->_tokens),1);
+        $this->build();
         $this->_setCursor(GDK_ARROW);
         
         return true;
     }
+    
+     
     function _DrawingAreaClear() { // draw a big rectangle over the drawing area..
         //return; // not needed 
         gdk::draw_rectangle($this->pixmap,
@@ -1076,6 +1080,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
     
     }
     function _DrawingAreaRepaint() { 
+        if (!$this->pixmap) return;
         gdk::draw_pixmap($this->drawing_area->window,
             $this->drawing_area->style->fg_gc[$this->drawing_area->state],
             $this->pixmap,
@@ -1083,9 +1088,20 @@ class PEAR_Frontend_Gtk_WidgetHTML {
     }
     
     
+    var $_new_area_x; // proposed new area!
     
     function _DrawingAreaCallbackExpose($widget,$event) { // standard callback to repaint a drawing area 
-         
+        if (!$this->pixmap) return;
+        
+        if (!$this->_flag_rebuild  && ($this->layout->allocation->width > 400) && ($this->_area_x != $this->layout->allocation->width )) {
+             
+            if (  abs($this->_area_x - $this->layout->allocation->width) > 15) {
+                $this->_new_area_x = $this->layout->allocation->width ;  
+                gtk::timeout_add(500, array(&$this,'_ChangeSize'), $this->layout->allocation->width);
+            }
+            
+        }
+        
         gdk::draw_pixmap($this->drawing_area->window,
             $widget->style->fg_gc[$widget->state],
             $this->pixmap,
@@ -1094,6 +1110,23 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             $event->area->width, $event->area->height);
         return false;
     }                  
+    var $_flag_rebuild = FALSE;
+    function _ChangeSize($newsize) {
+         
+        if (!$this->_flag_rebuild && ($newsize == $this->_new_area_x) && ($this->_area_x != $this->_new_area_x)) {
+            //echo "BUILD? {$this->_area_x} = {$this->_new_area_x} \n";
+            
+            
+            
+            $this->_area_x = $this->_new_area_x;
+            $this->_flag_rebuild = TRUE;
+            $this->build();
+            while(gtk::events_pending()) gtk::main_iteration();
+            $this->_flag_rebuild = FALSE;
+        }
+    }
+    
+    
     function _DrawingAreaMotion($widget,$event) {
         if ($event->is_hint) {
             $window = $event->window;
@@ -1138,11 +1171,9 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             $this->_DrawingAreaClear();
             $this->loadURL($url);
             $this->tokenize();
-            $this->build(0,count($this->_tokens),1);
+            $this->build();
             $this->_setCursor(GDK_ARROW);
         }
-            
-    
     }
     
     var $_cursor =0;
@@ -1548,6 +1579,7 @@ error_reporting(E_ALL);
 $window = &new GtkWindow();
 $window->set_name('Test Input');
 $window->set_position(GTK_WIN_POS_CENTER);
+$window->set_usize(400,400);
 $window->connect_object('destroy', array('gtk', 'main_quit'));
 $vbox = &new GtkVBox();
 $window->add($vbox);
