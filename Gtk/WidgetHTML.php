@@ -60,7 +60,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
     function build($startpos,$endpos) { // read the tokens and build the line/table arrays - then display
         $this->layout->freeze();
         
-        $this->_DrawingAreaClear();
+      
         
         $this->_line_y = array();
         $this->_states = array();
@@ -75,10 +75,40 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         $this->_lines[0]['descent'] =0;
         $this->_updateLine('','START');
         $this->_lines[$this->_line]['bottom'] =0;
-        $this->_lines[0]['left'] = 10;
+        $this->_lines[0]['left'] = 0;
         $this->_lines[0]['right'] = $this->_area_x;
-       
-       
+        $this->tables[0]['left'] = 0;
+        $this->tables[0]['right'] = $this->_area_x;
+        $this->tables[0]['top'] = 0;
+        $this->tables[0]['line'] = 0;
+        
+        $this->tables[0]['table'][1][1]['span'] = 1;
+        $this->tables[0]['table'][1][1]['rowspan'] = 1;
+        $this->tables[0]['table'][1][1]['width'] = $this->_area_x;
+        $this->td[0]['tag'] = 'BODY';
+        $this->td[0]['row'] = 1;
+        $this->td[0]['col'] = 1;
+        $this->td[0]['colspan'] = 1;
+        $this->td[0]['rowspan'] = 1;
+        $this->td[0]['table'] = 0;
+        $this->td[0]['colwidth'] = 149;
+        $this->td[0]['left'] = 0;
+        $this->td[0]['right'] = $this->_area_x;
+        $this->td[0]['totalcols'] = 1;
+        $this->td[0]['lines'] = array();
+        $this->td[0]['line_items'] = array();
+        
+        $this->_makeColors('#000000','#FFFFFF');
+        $this->td[0]['gc'] =   '#000000#FFFFFF'; // background 
+        $this->td[0]['bggc'] =  '#FFFFFF#000000';
+        $this->tables[0]['gc'] =   '#000000#FFFFFF'; // background 
+        $this->tables[0]['bggc'] =  '#FFFFFF#000000';
+        
+        $this->td[0]['height'] = 0;
+        $this->td[0]['top'] = 0;
+        $this->td[0]['bottom'] = 0;
+        $this->tables[0]['table'][1][1]['td'] = &$this->td[0];
+        $this->tables[0]['cells'] = array(0);
         $this->_nextLine("BEGIN");
         
         for($pos = $startpos;$pos < $endpos;$pos++) {
@@ -113,14 +143,13 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                     case 'OPTION':
                     case 'TBODY':
                     
-                    case 'LI':
-                    
                     case 'IMG':
                     
                     case '!--':
                         break;
                     
                     case 'UL':
+                    case 'DL':
                         if ($method ==  'push') {
                             $this->_nextLine('UL'); // clear old line...
                             $this->_TDaddLine('UL'); 
@@ -266,6 +295,18 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                         
                     case 'BODY':
                         $this->Start = TRUE;
+                        $this->$method($item[0],$pos);
+                        if ($method == 'push') {
+                            $backgroundcolor = $this->in('BGCOLOR');
+                            if (!$backgroundcolor) 
+                                $backgroundcolor = "#000000";
+                            $this->_makeColors('#000000',$backgroundcolor);
+                            $this->td[0]['bggc'] = '#000000'.$backgroundcolor;
+                            $this->tables[0]['bggc'] =  '#000000'.$backgroundcolor;
+                            
+                            
+                            
+                        }
                         break; 
                     case 'PRE':
                         //$this->output($item[0]);
@@ -309,9 +350,20 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                          
                         
                         break;
-                    
+                    case 'HR':
+                        $this->linebr($this->_tokens[$pos][0],$pos);
+                        $this->linebr($this->_tokens[$pos][0],$pos);
+                        break;
+                    case 'LI':
+                    case 'DT':
+                        $this->$method($item[0],$pos,@$item[1]);
+                        if ($method == 'push')
+                            $this->linebr($this->_tokens[$pos][0],$pos);
+                        break;
+                        
                     case 'BR':
                     case 'P': 
+                    
                         //$this->output($item[0]);
                         //if ($method == 'push')
                         $this->linebr($this->_tokens[$pos][0],$pos);
@@ -336,11 +388,14 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         }
         $this->linebr('LAST LINE');   
         
+        
+        $this->_TABLEmovelines(0);
+        
         $this->_area_y = $this->_lines[$this->_line]['bottom'] ;
         $this->layout->set_size($this->_area_x , $this->_area_y );
         $this->layout->thaw();
         //print_r($this->td);
-        
+        $this->_DrawingAreaClear();
         foreach(array_keys($this->tables) as $pos)
             $this->_drawBlock($this->tables[$pos]);
         foreach(array_keys($this->td) as $pos)
@@ -348,13 +403,14 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         foreach(array_keys($this->_textParts) as $id)
             $this->_drawPart($id);
         
-        //print_r($this->tables);
-        print_r($this->_lines);
+        print_r($this->tables);
+        //print_r($this->_lines);
 
     }
     
     /*-----------------------------STACK STUFF--------------------------------*/
-    var $check = ""; // put TABLE|TD to monitor the stack
+
+    var $check = "BGCOLOR"; // put TABLE|TD to monitor the stack
     var $_states = array(); // array of pos'id => various data!!!
      
     var $stack;// array of item stack
@@ -410,37 +466,39 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         
         $args = array();
      
-        if (preg_match("/\scolor\=[\"\']?(\#[0-9A-F]+)[\"\']?/mi",' '.$attributes,$args)) 
-            $this->$method("FGCOLOR",$pos,$args[1]);
+        if (preg_match("/\scolor\=[\"\']?\#?([0-9A-F]{6})[\"\']?/mi",' '.$attributes,$args)) 
+            $this->$method("FGCOLOR",$pos,"#".$args[1]);
           
         $args = array();    
-        if (preg_match("/\sbgcolor\=[\"\']?(\#[0-9A-F]+)[\"\']?/mi",' '.$attributes,$args))
-            $this->$method("BGCOLOR",$pos,$args[1]);
-        
-        $colors = array(
-            "yellow" => "#FFFF00",
-            "blue" => "#0000FF"
-        );
-        
-        $args = array();    
-        if (preg_match("/\sbgcolor\=[\"\']?([a-z]+)[\"\']?/mi",' '.$attributes,$args))
+        if (preg_match("/\sbgcolor\=[\"\']?\#?([0-9A-F]{6})[\"\']?/mi",' '.$attributes,$args)) {
+            $this->$method("BGCOLOR",$pos,"#".$args[1]);
+        } else if (preg_match("/\sbgcolor\=[\"\']?([a-z]+)[\"\']?/mi",' '.$attributes,$args)) {
             $this->$method("BGCOLOR",$pos,strtolower($args[1]));
-
+        }
 
         $args = array();
-        if (preg_match("/\stext\=[\"\']?(\#[0-9A-F]+)[\"\']?/mi",' '.$attributes,$args))
+        if (preg_match("/\stext\=[\"\']?([a-z]+)[\"\']?/mi",' '.$attributes,$args))
             $this->$method("FGCOLOR",$pos,$args[1]);
         $args = array();
-        if (preg_match("/\sclass\=[\"\']?([A-Z]+)[\"\']?/mi",' '.$attributes,$args))
+        if (preg_match("/\sclass\=[\"\']?([a-z]+)[\"\']?/mi",' '.$attributes,$args))
             $this->_stackStyle($method,$pos,$args[1]);
             
         if (preg_match("/\shref\=[\"\']?([^\"\']+)[\"\']?/mi",' '.$attributes)) {
-            $this->$method('FGCOLOR',$pos,'blue');
+            $col = $this->in('LINKCOLOR');
+            if (!$col) $col = 'blue';
+            $this->$method('FGCOLOR',$pos,$col);
             $this->$method('U',$pos,":");
-        }    
+        }
+        $args = array();
+        if (preg_match("/\slink\=[\"\']?\#?([0-9A-F]{6})[\"\']?/mi",' '.$attributes,$args)) 
+              $this->$method('LINKCOLOR',$pos,"#".$args[1]);
+        
         $args = array();
         if (preg_match("/\salign\=[\"\']?([a-z]+)[\"\']?/mi",' '.$attributes,$args))
             $this->$method("ALIGN",$pos,strtolower($args[1]));
+        
+        
+        
         
         
     } 
@@ -461,7 +519,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
     }
     
     
-    /*-----------------------------TEXT StuffSTUFF --------------------------------*/
+    /*-----------------------------TEXT STUFF --------------------------------*/
     
     var $_textParts = array(); // associative array of all the text parts to be drawn
     function linebr($item='',$reason) { // add a line break
@@ -603,6 +661,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                 $part['width'], $line['height']
             )
         );
+        
     }
     function _drawBlock($ar) {  // draw a block (eg. TABLE or TD)
         if (!$ar['bggc']) { 
@@ -767,9 +826,12 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                 $this->td[$id]['lines'][] = $this->_line;
                 $this->td[$id]['line_items'][$this->_line] = &$this->_lines[$this->_line];
             }
+        } else {
+            if (!in_array($this->_line,$this->td[0]['lines'])) {
+                $this->td[0]['lines'][] = $this->_line;
+                $this->td[0]['line_items'][$this->_line] = &$this->_lines[$this->_line];
+            }
         }
-        
-    
     }
     
     /*------------------------------FONTS AND COLORS --------------------------*/
@@ -942,7 +1004,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             $this->_area_x,$this->_area_y,
             -1);
         
-        $this->_DrawingAreaClear();
+        //$this->_DrawingAreaClear();
         // draw somethin on it.
      
         //$this->drawing_area->realize();
@@ -962,7 +1024,9 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         return true;
     }
     function _DrawingAreaClear() { // draw a big rectangle over the drawing area..
+        //return; // not needed 
         gdk::draw_rectangle($this->pixmap,
+            //$this->_gcs["#FFFFFF{$this->backgroundcolor}"],
             $this->drawing_area->style->white_gc,
             true, 0, 0,
             $this->_area_x,$this->_area_y);
@@ -1300,9 +1364,8 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                     $this->td[$td_id]['bottom']  = $bottom;
                     
                 $this->tables[$id]['table'][$row][$col]['td'] = &$this->td[$td_id];
-               
-          
             }
+            
             //echo "ROW:$row:TOP:$top\n";
             $top = $bottom;
              
@@ -1332,13 +1395,19 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             $lines = $this->td[$td]['lines'];
             $top = $this->td[$td]['top'];
             foreach($lines as $line) {
+                echo "UpdateLine:$line\n";
                 $this->_lines[$line]['top'] = $top;
                 $this->_calcLine($line);
                 
                 if (@$subtable = $this->_lines[$line]['table']) {
                     $this->tables[$subtable ]['top'] = $top;
-                    $this->_TABLErecalc($subtable, $this->tables[$subtable ]['end']);
-                      
+                    $this->_TABLErecalc($subtable, $this->tables[$subtable ]['end']);                    
+                    $this->_calcLine($line);  
+                }
+                if ($this->_lines[$line]['bottom'] < $this->_lines[$line]['top'] ) {
+                    echo "BOTTOM LESS THAN TOP!\n";
+                    print_r($lines);
+                    exit;
                 }
                 $top = $this->_lines[$line]['bottom'];
             }
@@ -1355,8 +1424,10 @@ dl('php_gtk.so');
 error_reporting(E_ALL);
 $t = new PEAR_Frontend_Gtk_WidgetHTML;
  //$t->test(dirname(__FILE__).'/tests/test3.html');
-//$t->test(dirname(__FILE__).'/tests/packages.templates.it.html');
-$t->test('http://pear.php.net/manual/en/packages.templates.it.php');
+ 
+$t->test($argv[1]);
+//dirname(__FILE__).'/tests/packages.templates.it.html');
+//$t->test('http://pear.php.net/manual/en/packages.templates.it.php');
 //$t->test('http://docs.akbkhome.com/PHPcodedoc/PHP_CodeDoc.html');
 //$t->test('http://www.php.net/');
 $t->tokenize();
