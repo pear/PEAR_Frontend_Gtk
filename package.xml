@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE package SYSTEM "../package.dtd">
+<package version="1.0">
+  <name>PEAR_Frontend_Gtk</name>
+  <summary>Gtk (Desktop) PEAR Package Manager</summary>
+  <description>Desktop Interface to the PEAR Package Manager, Requires PHP-GTK
+</description>
+  <license>PHP License</license>
+  <maintainers>
+    <maintainer>
+      <user>alan_k</user>
+      <role>lead</role>
+      <name>Alan Knowles</name>
+      <email>alan@akbkhome.com</email>
+    </maintainer>
+    <maintainer>
+      <user>ssb</user>
+      <role>helper</role>
+      <name>Stig Sæther Bakken</name>
+      <email>stig@php.net</email>
+    </maintainer>
+  </maintainers>
+  <release>
+    <version>0.1</version>
+    <date>2002-05-27</date>
+    <notes>Snapshot - dont expect it to work</notes>
+    <state>experimental</state>
+    <filelist>
+      <dir name="/" baseinstalldir="PEAR/Frontend">
+      	<file role="php">Gtk.php</file>
+      	<dir name="Gtk">
+           <file role="php">Packages.php</file>
+           <file role="php">Summary.php</file>
+  	       <file role="php">installer.glade</file>
+           <dir name="xpm">
+             <file role="php">check_no.xpm</file>
+             <file role="php">check_yes.xpm</file>
+  	         <file role="php">folder_closed.xpm</file>
+  	         <file role="php">folder_open.xpm</file>
+             <file role="php">info_icon.xpm</file>
+             <file role="php">installer_logo.xpm</file>
+  	         <file role="php">nav_configuration.xpm</file>
+  	         <file role="php">nav_documentation.xpm</file>        
+   	         <file role="php">nav_installer.xpm</file>          
+             <file role="php">package.xpm</file>                      
+           </dir> 
+        </dir> 
+      </dir>	
+    </filelist>
+  </release>
+  <changelog>
+    <release>
+      <version>0.1</version>
+      <date>2002-05-27</date>
+      <notes>Snapshot - dont expect it to work</notes>
+      <state>experimental</state>
+    </release>
+  </changelog>
+</package>
