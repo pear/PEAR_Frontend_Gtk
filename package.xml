@@ -21,9 +21,9 @@
     </maintainer>
   </maintainers>
   <release>
-    <version>0.1</version>
-    <date>2002-06-13</date>
-    <notes>Snapshot - dont expect it to work</notes>
+    <version>0.2</version>
+    <date>2002-06-16</date>
+    <notes>Snapshot - First Working Version</notes>
     <state>snapshot</state>
     <filelist>
       <dir name="/" baseinstalldir="PEAR/Frontend">
@@ -63,8 +63,8 @@
   <changelog>
     <release>
       <version>0.2</version>
-      <date>2002-06-13</date>
-      <notes>Snapshot - package problems being worked on.</notes>
+      <date>2002-06-16</date>
+      <notes>Snapshot - First Working Version</notes>
       <state>snapshot</state>
     </release>
   
