@@ -372,8 +372,10 @@ class PEAR_Frontend_Gtk extends PEAR
 
     function _buildConfig(&$array) {
         if (!$array) return;
-        foreach ($array as $v) 
-            $this->_buildConfigItem($v[0],$v[1]);
+        foreach ($array as $group=>$items) 
+            foreach ($items as $v) {
+                $this->_buildConfigItem($v[1],$v[2]);
+            }
 
     }
     
@@ -651,7 +653,7 @@ class PEAR_Frontend_Gtk extends PEAR
     function outputData($data,$command ){
         switch ($command) {
             case 'config-show':
-                $this->_buildConfig($data['data']);
+                $this->_buildConfig($data['data']); 
                 break;
             default:
                 echo "COMMAND : $command\n";
