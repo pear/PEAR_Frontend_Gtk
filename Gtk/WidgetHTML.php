@@ -24,10 +24,27 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             $tok = strtok('<');
             $a[] = $tok;
         }
-        
+        $in_comment = '';
         $this->_tokens = array();
         foreach($a as $i=>$b) {
             if (trim($b) === '') continue;
+            
+            if ((substr($b,0,3) == '!--') && !preg_match('/-->/m',$b)) { 
+                $in_comment = $b;
+                continue;
+            }
+            if ($in_comment) 
+                if (preg_match("/\-\-\>/m",$b)) { 
+                    $tmp = explode('-->',$b);
+                    $this->_tokens[] = array('<!--',$in_comment.$tmp[0]);
+                    $this->_tokens[] = $tmp[1];
+                    $in_comment = '';
+                    continue;
+                } else {
+                    $in_comment .= $b;
+                    continue;
+                }
+            
             $l = strlen($b)-1;
             if ($b{$l} == '>') {
                 if (($s = strcspn($b," \n")) == strlen($b)) {
