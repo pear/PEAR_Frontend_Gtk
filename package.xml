@@ -28,7 +28,7 @@
     <filelist>
       <dir name="/" baseinstalldir="PEAR/Frontend">
       	<file role="php">Gtk.php</file>
-      	<dir name="Gtk">
+      	<dir name="Gtk" role="php">
             <file role="php">Config.php</file>
             <file role="php">DirSelect.php</file>
 	    <file role="php">Documentation.php</file>
@@ -40,7 +40,7 @@
             <file role="php">WidgetHTML.php</file>
             <file role="php">installer.glade</file>
            
-           <dir name="xpm">
+           <dir name="xpm" role="php">
 	     <file role="php">black_close_icon.xpm</file>
              <file role="php">check_no.xpm</file>
              <file role="php">check_yes.xpm</file>
