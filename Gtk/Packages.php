@@ -1,19 +1,39 @@
 <?
 /*
-* This class deals with the list of packages 
-* - select one and it passes on data to the summary class
-*
+  +----------------------------------------------------------------------+
+  | PHP Version 4                                                        |
+  +----------------------------------------------------------------------+
+  | Copyright (c) 1997-2002 The PHP Group                                |
+  +----------------------------------------------------------------------+
+  | This source file is subject to version 2.02 of the PHP license,      |
+  | that is bundled with this package in the file LICENSE, and is        |
+  | available at through the world-wide-web at                           |
+  | http://www.php.net/license/2_02.txt.                                 |
+  | If you did not receive a copy of the PHP license and are unable to   |
+  | obtain it through the world-wide-web, please send a note to          |
+  | license@php.net so we can mail you a copy immediately.               |
+  +----------------------------------------------------------------------+
+  | Author: Alan Knowles <alan@akbkhome.com>                             |
+  +----------------------------------------------------------------------+
+
+  $Id$
 */
+
+/**
+ * Gtk Frontend - Section that deals with package lists
+ *
+ * @author Alan Knowles <alan@akbkhome.com>
+ */
 
 class PEAR_Frontend_Gtk_Packages {
 
-    var $Frontend_Gtk; // main interface
+    var $ui; // main interface
     var $widget; // the list widget
     var $config; // reference to config;
     
     
-    function init() {
-        
+    function PEAR_Frontend_Gtk_Packages(&$ui) {
+        $this->ui = &$ui;
         $this->_loadPackageData();
         $cols = array('Package','Version','','','Summary');
         $this->widget = &new GtkCTree(5,0,$cols);
@@ -27,14 +47,14 @@ class PEAR_Frontend_Gtk_Packages {
             $this->widget->set_column_auto_resize($i,TRUE);
         
         $this->widget->show();
-        $this->Frontend_Gtk->_widget_package_list_holder->add($this->widget);
+        $this->ui->_widget_package_list_holder->add($this->widget);
         
-        $this->Frontend_Gtk->_widget_packages_install->connect('pressed',array(&$this,'_callbackInstall'));
+        $this->ui->_widget_packages_install->connect('pressed',array(&$this,'_callbackInstall'));
         
     }
     
     function _loadPackageData() {
-        $reg = new PEAR_Registry($this->Frontend_Gtk->config->get('php_dir'));
+        $reg = new PEAR_Registry($this->ui->config->get('php_dir'));
         $installed = $reg->packageInfo();
        
         
@@ -45,7 +65,7 @@ class PEAR_Frontend_Gtk_Packages {
         
         // get available
         if (!$this->_available_packages) {
-            $r = new PEAR_Remote($this->Frontend_Gtk->config);
+            $r = new PEAR_Remote($this->ui->config);
             $this->_available_packages = $r->call('package.listAll', true);
             if (PEAR::isError($this->_available_packages)) {
                 // whats the official way to hanlde this?
@@ -224,7 +244,7 @@ documents.
             case 2: // install/ toggled
             //case 4:
                  
-                $this->Frontend_Gtk->_summary->hide();
+                $this->ui->_summary->hide();
                  
                 if (!$package) return;
                 $this->_setPackageStatus(&$node, !$this->_package_status[$package]['install']);
@@ -232,19 +252,19 @@ documents.
                 break;
             case 3: // info selected
                 if (!$package)  {
-                    $this->Frontend_Gtk->_summary->hide();
+                    $this->ui->_summary->hide();
                     return;
                 } 
                  
                 if ($this->_moveto_flag)
                     $this->widget->node_moveto($node,0,0,0);
                 $this->_moveto_flag=FALSE; 
-                $this->Frontend_Gtk->_summary->toggle($this->_package_status[$package]);
+                $this->ui->_summary->toggle($this->_package_status[$package]);
                 break;
             case -1: // startup!
                 return;
             default:
-                $this->Frontend_Gtk->_summary->hide();
+                $this->ui->_summary->hide();
                 break;
         }
         
@@ -285,7 +305,7 @@ documents.
             if ($package['install'] & !$package['installed'])
                 $install[] = $package;
                 
-        $this->Frontend_Gtk->_install->start($install);
+        $this->ui->_install->start($install);
         
         
         

@@ -24,6 +24,14 @@ require_once "PEAR/Frontend/Gtk/Packages.php";
 require_once "PEAR/Frontend/Gtk/Summary.php";
 require_once "PEAR/Frontend/Gtk/Install.php";
 
+
+/**
+ * Core Gtk Frontend Class
+ * All the real work is done in the child classes (Gtk/*.php)
+ *
+ * @author Alan Knowles <alan@akbkhome.com>
+ */
+
 class PEAR_Frontend_Gtk extends PEAR
 {
     // {{{ properties
@@ -112,7 +120,7 @@ class PEAR_Frontend_Gtk extends PEAR
      * @var object PEAR_Frontend_Gtk_Packages
      * @access private
      */
-    var $_package_list; 
+    var $_packages; 
     
       /**
      * the class that manages the Package summary
@@ -137,15 +145,9 @@ class PEAR_Frontend_Gtk extends PEAR
         
         // initialize child objects
         
-        $this->_package_list = &new PEAR_Frontend_Gtk_Packages;
-        $this->_package_list->Frontend_Gtk = &$this;
-        $this->_package_list->init();
-        $this->_summary = &new PEAR_Frontend_Gtk_Summary;
-        $this->_summary->Frontend_Gtk = &$this;
-        $this->_summary->init(); 
-        $this->_install = &new PEAR_Frontend_Gtk_Install;
-        $this->_install->Frontend_Gtk = &$this;
-        $this->_install->init(); 
+        $this->_packages     = &new PEAR_Frontend_Gtk_Packages($this);
+        $this->_summary      = &new PEAR_Frontend_Gtk_Summary($this);
+        $this->_install      = &new PEAR_Frontend_Gtk_Install($this);
         
         $this->_widget_window->connect_after('realize',array(&$this,'_callbackWindowConfigure'));
         $this->_widget_window->connect_after('configure_event',array(&$this,'_callbackWindowConfigure'));
@@ -352,13 +354,13 @@ class PEAR_Frontend_Gtk extends PEAR
     * Menu Callback - expand all
     */
     function on_expand_all_activate() {
-        $this->_package_list->widget->expand_recursive();
+        $this->_packages->widget->expand_recursive();
     }
     /*
     * Menu Callback - colllapse all
     */
     function on_collapse_all_activate() {
-        $this->_package_list->widget->collapse_recursive();
+        $this->_packages->widget->collapse_recursive();
     }
     /*
     * Menu Callback - Exit/Quit
