@@ -23,8 +23,7 @@
 /**
  * Gtk Frontend -This class deals with the installing of packages
  * 
- * #TODO : make the textbox display more information in a 'friendlier way'
- *
+ * #TODO : Add remove methods, move to new 'InstallQueue/RemoveQueue API'
  *
  * @author Alan Knowles <alan@akbkhome.com>
  */
