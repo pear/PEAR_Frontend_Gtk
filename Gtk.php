@@ -206,6 +206,9 @@ class PEAR_Frontend_Gtk extends PEAR
 
         $this->_setStyle('package_logo','#000000','#339900',TRUE);
         $this->_setStyle('package_logo_text','#FFFFFF','#339900'); 
+        $this->_setFont('package_logo_text','-*-helvetica-bold-r-normal-*-*-100-*-*-p-*-iso8859-1'); 
+        
+         
         
         $package_logo = &new GtkPixmap(
             $this->_pixmaps['pear.xpm'][0],
@@ -223,6 +226,7 @@ class PEAR_Frontend_Gtk extends PEAR
         $download_icon->show();
         $this->_setStyle('downloading_logo','#000000','#339900',TRUE);
         $this->_setStyle('downloading_logo_text','#FFFFFF','#339900'); 
+        $this->_setFont('downloading_logo_text','-*-helvetica-bold-r-normal-*-*-100-*-*-p-*-iso8859-1'); 
         $this->_widget_downloading_logo_text->set_justify( GTK_JUSTIFY_LEFT );
         $installer_logo = &new GtkPixmap(
             $this->_pixmaps['pear.xpm'][0],
@@ -236,7 +240,7 @@ class PEAR_Frontend_Gtk extends PEAR
        
         $this->_setStyle('config_logo','#000000','#339900',TRUE);
         $this->_setStyle('config_logo_text','#FFFFFF','#339900'); 
-        
+        $this->_setFont('config_logo_text','-*-helvetica-bold-r-normal-*-*-100-*-*-p-*-iso8859-1'); 
         $config_logo = &new GtkPixmap(
             $this->_pixmaps['pear.xpm'][0],
             $this->_pixmaps['pear.xpm'][1]);
@@ -322,6 +326,18 @@ class PEAR_Frontend_Gtk extends PEAR
     
     
     }
+    
+    function _setFont($widgetname,$fontname) {
+        $font = gdk::font_load($fontname);
+        $widget_fullname = "_widget_". $widgetname;
+        $widget = &$this->$widget_fullname;
+        $oldstyle = $widget->get_style();
+        $newstyle = $oldstyle->copy();
+        $newstyle->font = $font;
+        $widget->set_style($newstyle);
+    }
+
+    
     /**
     * All the pixmaps from the xpm directory
     * @var boolean

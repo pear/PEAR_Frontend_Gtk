@@ -15,7 +15,7 @@
 <widget>
   <class>GtkWindow</class>
   <name>window</name>
-  <width>600</width>
+  <width>620</width>
   <height>460</height>
   <visible>False</visible>
   <signal>
@@ -32,6 +32,8 @@
   <type>GTK_WINDOW_TOPLEVEL</type>
   <position>GTK_WIN_POS_NONE</position>
   <modal>False</modal>
+  <default_width>620</default_width>
+  <default_height>480</default_height>
   <allow_shrink>False</allow_shrink>
   <allow_grow>True</allow_grow>
   <auto_shrink>False</auto_shrink>
@@ -617,7 +619,7 @@
 		<name>scrolledwindow3</name>
 		<border_width>3</border_width>
 		<hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
-		<vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
+		<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
 		<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
 		<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
 		<child>
@@ -691,7 +693,7 @@
 	    <widget>
 	      <class>GtkScrolledWindow</class>
 	      <name>scrolledwindow6</name>
-	      <width>160</width>
+	      <width>180</width>
 	      <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
 	      <vscrollbar_policy>GTK_POLICY_NEVER</vscrollbar_policy>
 	      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
