@@ -20,47 +20,53 @@
       <email>stig@php.net</email>
     </maintainer>
   </maintainers>
-  <release>
-    <version>0.2</version>
-    <date>2002-06-16</date>
-    <notes>Snapshot - First Working Version</notes>
-    <state>snapshot</state>
+   <release>
+      <version>0.3</version>
+      <date>2002-06-19</date>
+      <notes>Attempt to fix package</notes>
+      <state>beta</state>
     <filelist>
       <dir name="/" baseinstalldir="PEAR/Frontend">
       	<file role="php">Gtk.php</file>
-      	<dir name="Gtk" role="php" baseinstalldir="PEAR/Frontend/Gtk">
-            <file role="php">Config.php</file>
-            <file role="php">DirSelect.php</file>
-	    <file role="php">Documentation.php</file>
-            <file role="php">Info.php</file>
-            <file role="php">Install.php</file>
-            <file role="php">PackageData.php</file>
-            <file role="php">Packages.php</file>
-            <file role="php">Summary.php</file>
-            <file role="php">WidgetHTML.php</file>
-            <file role="php">installer.glade</file>
+      	<dir name="Gtk" role="php">
+            <file>Config.php</file>
+            <file>DirSelect.php</file>
+	    <file>Documentation.php</file>
+            <file>Info.php</file>
+            <file>Install.php</file>
+            <file>PackageData.php</file>
+            <file>Packages.php</file>
+            <file>Summary.php</file>
+            <file>WidgetHTML.php</file>
+            <file>installer.glade</file>
            
-           <dir name="xpm" role="php" baseinstalldir="PEAR/Frontend/Gtk/xpm">
-	     <file role="php">black_close_icon.xpm</file>
-             <file role="php">check_no.xpm</file>
-             <file role="php">check_yes.xpm</file>
-	     <file role="php">downloading_image.xpm</file>
-  	     <file role="php">folder_closed.xpm</file>
-  	     <file role="php">folder_open.xpm</file>
-             <file role="php">info_icon.xpm</file>
-	     <file role="php">nav_configuration.xpm</file>
-  	     <file role="php">nav_documentation.xpm</file>        
-   	     <file role="php">nav_installer.xpm</file>          
-             <file role="php">package.xpm</file>   
-	     <file role="php">pear.xpm</file>                
-             <file role="php">stock_delete-16.xpm</file>
-             <file role="php">stock_delete-outline-16.xpm</file>
+           <dir name="xpm" role="php">
+	     <file>black_close_icon.xpm</file>
+             <file>check_no.xpm</file>
+             <file>check_yes.xpm</file>
+	     <file>downloading_image.xpm</file>
+  	     <file>folder_closed.xpm</file>
+  	     <file>folder_open.xpm</file>
+             <file>info_icon.xpm</file>
+	     <file>nav_configuration.xpm</file>
+  	     <file>nav_documentation.xpm</file>        
+   	     <file>nav_installer.xpm</file>	     
+             <file>package.xpm</file>	
+	     <file>pear.xpm</file>		  
+             <file>stock_delete-16.xpm</file>
+             <file>stock_delete-outline-16.xpm</file>
            </dir> 
         </dir> 
       </dir>	
     </filelist>
   </release>
   <changelog>
+    <release>
+      <version>0.3</version>
+      <date>2002-06-19</date>
+      <notes>Attempt to fix package</notes>
+      <state>beta</state>
+    </release>
     <release>
       <version>0.2</version>
       <date>2002-06-16</date>

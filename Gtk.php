@@ -89,7 +89,7 @@ class PEAR_Frontend_Gtk extends PEAR
         $this->_info         = &new PEAR_Frontend_Gtk_Info($this);
         $this->_documentation= &new PEAR_Frontend_Gtk_Documentation($this);
         $this->_loadGlade();
-        $this->_initInterface();
+   $this->_initInterface();
     }
     // }}}
     /**
@@ -544,7 +544,11 @@ class PEAR_Frontend_Gtk extends PEAR
 
     function displayFatalError($eobj)
     {
-          return $this->_info->show("FATAL ERROR: ". $eobj->getMessage()); 
+          if (!$this->_info) {
+	  	echo "FATAL ERROR: ". $eobj->getMessage();
+		exit;
+	  }
+	  return $this->_info->show("FATAL ERROR: ". $eobj->getMessage()); 
         //exit(1);
     }
 
