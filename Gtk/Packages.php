@@ -29,7 +29,7 @@ class PEAR_Frontend_Gtk_Packages {
         $this->widget->show();
         $this->Frontend_Gtk->_widget_package_list_holder->add($this->widget);
         
-         
+        $this->Frontend_Gtk->_widget_packages_install->connect('pressed',array(&$this,'_callbackInstall'));
         
     }
     
@@ -195,13 +195,18 @@ documents.
         if (!$dh) return;
         while (($file = readdir($dh)) !== FALSE) {
             if (@$file{0} == '.') continue;
-            echo "loading {$dir}/{$file}";
+            if (!preg_match('/\.xpm$/',$file)) continue;
+            
             $this->_pixmaps[$file] =  
                 Gdk::pixmap_create_from_xpm($window->window, NULL, "{$dir}/{$file}");
                 
         }
  
     }
+    /*
+    * call back when a row is pressed - hide/show the details and check it's isntalled status
+    *  
+    */
     function _callbackSelectRow($node,$col) {
         print_r(array($node,$a,$b));
         $package = $this->widget->node_get_row_data($node);
@@ -211,7 +216,7 @@ documents.
             case 0:
             case 1:
             case 2: // install/ toggled
-            case 4:
+            //case 4:
                  
                 $this->Frontend_Gtk->_summary->hide();
                  
@@ -228,7 +233,7 @@ documents.
                 if ($this->_moveto_flag)
                     $this->widget->node_moveto($node,0,0,0);
                 $this->_moveto_flag=FALSE; 
-                $this->Frontend_Gtk->_summary->show($this->_package_status[$package]);
+                $this->Frontend_Gtk->_summary->toggle($this->_package_status[$package]);
                 break;
             case -1: // startup!
                 return;
@@ -265,7 +270,21 @@ documents.
     
     
     
-    
+    function _callbackInstall() {
+        // send the installer a list of packages to install
+        // probably the command stuff eventually...
+        // this method is very chessy - need to work out a more 'consistent way to handle, remove,add etc'
+        $install = array();
+        foreach($this->_package_status as $package) 
+            if ($package['install'] & !$package['installed'])
+                $install[] = $package;
+                
+        $this->Frontend_Gtk->_install->start($install);
+        
+        
+        
+        
+    }
     
 }
 ?>

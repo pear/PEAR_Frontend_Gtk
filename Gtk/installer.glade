@@ -374,7 +374,7 @@
 
       <widget>
 	<class>GtkNotebook</class>
-	<name>notebook1</name>
+	<name>pages</name>
 	<show_tabs>False</show_tabs>
 	<show_border>False</show_border>
 	<tab_pos>GTK_POS_TOP</tab_pos>
@@ -451,10 +451,13 @@
 	      </child>
 
 	      <widget>
-		<class>GtkHBox</class>
-		<name>hbox6</name>
-		<homogeneous>False</homogeneous>
-		<spacing>0</spacing>
+		<class>GtkScrolledWindow</class>
+		<name>scrolledwindow7</name>
+		<height>22</height>
+		<hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
+		<vscrollbar_policy>GTK_POLICY_NEVER</vscrollbar_policy>
+		<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+		<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
@@ -462,64 +465,49 @@
 		</child>
 
 		<widget>
-		  <class>GtkToolbar</class>
-		  <name>toolbar2</name>
-		  <orientation>GTK_ORIENTATION_HORIZONTAL</orientation>
-		  <type>GTK_TOOLBAR_ICONS</type>
-		  <space_size>5</space_size>
-		  <space_style>GTK_TOOLBAR_SPACE_EMPTY</space_style>
-		  <relief>GTK_RELIEF_NORMAL</relief>
-		  <tooltips>True</tooltips>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>False</fill>
-		  </child>
+		  <class>GtkLayout</class>
+		  <name>black_bg3</name>
+		  <area_width>400</area_width>
+		  <area_height>400</area_height>
+		  <hstep>10</hstep>
+		  <vstep>10</vstep>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>summary</name>
+		    <x>24</x>
+		    <y>0</y>
+		    <width>0</width>
+		    <height>0</height>
+		    <label>label44</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		  </widget>
 
 		  <widget>
 		    <class>GtkButton</class>
 		    <child_name>Toolbar:button</child_name>
-		    <name>button12</name>
-		    <label>button12</label>
+		    <name>close_details</name>
+		    <x>0</x>
+		    <y>0</y>
+		    <width>20</width>
+		    <height>20</height>
+
+		    <widget>
+		      <class>Placeholder</class>
+		    </widget>
 		  </widget>
-		</widget>
-
-		<widget>
-		  <class>GtkLabel</class>
-		  <name>label38</name>
-		  <label>      </label>
-		  <justify>GTK_JUSTIFY_CENTER</justify>
-		  <wrap>False</wrap>
-		  <xalign>0.5</xalign>
-		  <yalign>0.5</yalign>
-		  <xpad>0</xpad>
-		  <ypad>0</ypad>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>False</fill>
-		  </child>
-		</widget>
-
-		<widget>
-		  <class>GtkEntry</class>
-		  <name>summary</name>
-		  <can_focus>True</can_focus>
-		  <editable>False</editable>
-		  <text_visible>True</text_visible>
-		  <text_max_length>0</text_max_length>
-		  <text></text>
-		  <child>
-		    <padding>0</padding>
-		    <expand>True</expand>
-		    <fill>True</fill>
-		  </child>
 		</widget>
 	      </widget>
 
 	      <widget>
 		<class>GtkScrolledWindow</class>
 		<name>scrolledwindow3</name>
+		<border_width>3</border_width>
 		<hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
 		<vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
 		<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
@@ -544,9 +532,8 @@
 	  <widget>
 	    <class>GtkHBox</class>
 	    <name>hbox4</name>
-	    <border_width>4</border_width>
-	    <homogeneous>True</homogeneous>
-	    <spacing>7</spacing>
+	    <homogeneous>False</homogeneous>
+	    <spacing>0</spacing>
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
@@ -554,33 +541,81 @@
 	    </child>
 
 	    <widget>
-	      <class>GtkLabel</class>
-	      <name>label25</name>
-	      <label>Select the Packages You want to Install</label>
-	      <justify>GTK_JUSTIFY_CENTER</justify>
-	      <wrap>False</wrap>
-	      <xalign>0.5</xalign>
-	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
-	      <ypad>0</ypad>
+	      <class>GtkScrolledWindow</class>
+	      <name>scrolledwindow5</name>
+	      <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
+	      <vscrollbar_policy>GTK_POLICY_NEVER</vscrollbar_policy>
+	      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+	      <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
 	      <child>
 		<padding>0</padding>
-		<expand>False</expand>
-		<fill>False</fill>
+		<expand>True</expand>
+		<fill>True</fill>
 	      </child>
+
+	      <widget>
+		<class>GtkLayout</class>
+		<name>black_bg1</name>
+		<height>30</height>
+		<area_width>400</area_width>
+		<area_height>400</area_height>
+		<hstep>10</hstep>
+		<vstep>10</vstep>
+
+		<widget>
+		  <class>GtkLabel</class>
+		  <name>black_msg1</name>
+		  <x>8</x>
+		  <y>8</y>
+		  <width>0</width>
+		  <height>0</height>
+		  <label>Select the Packages You want to Install</label>
+		  <justify>GTK_JUSTIFY_CENTER</justify>
+		  <wrap>False</wrap>
+		  <xalign>0.5</xalign>
+		  <yalign>0.5</yalign>
+		  <xpad>0</xpad>
+		  <ypad>0</ypad>
+		</widget>
+	      </widget>
 	    </widget>
 
 	    <widget>
-	      <class>GtkButton</class>
-	      <name>button8</name>
-	      <can_focus>True</can_focus>
-	      <label>Download And Install &gt;&gt;</label>
-	      <relief>GTK_RELIEF_NORMAL</relief>
+	      <class>GtkScrolledWindow</class>
+	      <name>scrolledwindow6</name>
+	      <width>140</width>
+	      <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
+	      <vscrollbar_policy>GTK_POLICY_NEVER</vscrollbar_policy>
+	      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+	      <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
 		<fill>False</fill>
 	      </child>
+
+	      <widget>
+		<class>GtkLayout</class>
+		<name>black_bg2</name>
+		<width>0</width>
+		<height>33</height>
+		<area_width>140</area_width>
+		<area_height>400</area_height>
+		<hstep>5</hstep>
+		<vstep>5</vstep>
+
+		<widget>
+		  <class>GtkButton</class>
+		  <name>packages_install</name>
+		  <x>8</x>
+		  <y>8</y>
+		  <width>0</width>
+		  <height>0</height>
+		  <can_focus>True</can_focus>
+		  <label>Download And Install &gt;&gt;</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
+		</widget>
+	      </widget>
 	    </widget>
 	  </widget>
 	</widget>
@@ -589,7 +624,7 @@
 	  <class>GtkLabel</class>
 	  <child_name>Notebook:tab</child_name>
 	  <name>label38</name>
-	  <label>label38</label>
+	  <label>Package selection</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0.5</xalign>
@@ -607,7 +642,7 @@
 	  <widget>
 	    <class>GtkVBox</class>
 	    <name>vbox13</name>
-	    <height>38</height>
+	    <height>47</height>
 	    <homogeneous>False</homogeneous>
 	    <spacing>0</spacing>
 	    <child>
@@ -617,17 +652,63 @@
 	    </child>
 
 	    <widget>
-	      <class>Placeholder</class>
+	      <class>GtkScrolledWindow</class>
+	      <name>scrolly</name>
+	      <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
+	      <vscrollbar_policy>GTK_POLICY_NEVER</vscrollbar_policy>
+	      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+	      <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+	      <child>
+		<padding>0</padding>
+		<expand>True</expand>
+		<fill>True</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkLayout</class>
+		<name>downloading_logo</name>
+		<area_width>400</area_width>
+		<area_height>400</area_height>
+		<hstep>10</hstep>
+		<vstep>10</vstep>
+
+		<widget>
+		  <class>GtkHBox</class>
+		  <name>hbox7</name>
+		  <x>136</x>
+		  <y>8</y>
+		  <width>570</width>
+		  <height>27</height>
+		  <homogeneous>False</homogeneous>
+		  <spacing>0</spacing>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>downloading_logo_text</name>
+		    <label>Download and Installing Package</label>
+		    <justify>GTK_JUSTIFY_LEFT</justify>
+		    <wrap>False</wrap>
+		    <xalign>0.5</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>True</fill>
+		    </child>
+		  </widget>
+		</widget>
+	      </widget>
 	    </widget>
 	  </widget>
 
 	  <widget>
-	    <class>GtkScrolledWindow</class>
-	    <name>scrolledwindow4</name>
-	    <hscrollbar_policy>GTK_POLICY_ALWAYS</hscrollbar_policy>
-	    <vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
-	    <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-	    <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+	    <class>GtkHBox</class>
+	    <name>hbox6</name>
+	    <border_width>10</border_width>
+	    <homogeneous>False</homogeneous>
+	    <spacing>0</spacing>
 	    <child>
 	      <padding>0</padding>
 	      <expand>True</expand>
@@ -635,7 +716,115 @@
 	    </child>
 
 	    <widget>
-	      <class>Placeholder</class>
+	      <class>GtkScrolledWindow</class>
+	      <name>scrolledwindow9</name>
+	      <width>65</width>
+	      <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
+	      <vscrollbar_policy>GTK_POLICY_NEVER</vscrollbar_policy>
+	      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+	      <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>True</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkLayout</class>
+		<name>white_bg1</name>
+		<area_width>400</area_width>
+		<area_height>400</area_height>
+		<hstep>10</hstep>
+		<vstep>10</vstep>
+	      </widget>
+	    </widget>
+
+	    <widget>
+	      <class>GtkScrolledWindow</class>
+	      <name>scrolledwindow11</name>
+	      <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
+	      <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+	      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+	      <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+	      <child>
+		<padding>0</padding>
+		<expand>True</expand>
+		<fill>True</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkCList</class>
+		<name>download_list</name>
+		<can_focus>True</can_focus>
+		<columns>3</columns>
+		<column_widths>80,80,80</column_widths>
+		<selection_mode>GTK_SELECTION_SINGLE</selection_mode>
+		<show_titles>False</show_titles>
+		<shadow_type>GTK_SHADOW_IN</shadow_type>
+
+		<widget>
+		  <class>GtkLabel</class>
+		  <child_name>CList:title</child_name>
+		  <name>label47</name>
+		  <label>label47</label>
+		  <justify>GTK_JUSTIFY_CENTER</justify>
+		  <wrap>False</wrap>
+		  <xalign>0.5</xalign>
+		  <yalign>0.5</yalign>
+		  <xpad>0</xpad>
+		  <ypad>0</ypad>
+		</widget>
+
+		<widget>
+		  <class>GtkLabel</class>
+		  <child_name>CList:title</child_name>
+		  <name>label48</name>
+		  <label>label48</label>
+		  <justify>GTK_JUSTIFY_CENTER</justify>
+		  <wrap>False</wrap>
+		  <xalign>0.5</xalign>
+		  <yalign>0.5</yalign>
+		  <xpad>0</xpad>
+		  <ypad>0</ypad>
+		</widget>
+
+		<widget>
+		  <class>GtkLabel</class>
+		  <child_name>CList:title</child_name>
+		  <name>label49</name>
+		  <label>label49</label>
+		  <justify>GTK_JUSTIFY_CENTER</justify>
+		  <wrap>False</wrap>
+		  <xalign>0.5</xalign>
+		  <yalign>0.5</yalign>
+		  <xpad>0</xpad>
+		  <ypad>0</ypad>
+		</widget>
+	      </widget>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkScrolledWindow</class>
+	    <name>scrolledwindow10</name>
+	    <height>18</height>
+	    <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
+	    <vscrollbar_policy>GTK_POLICY_NEVER</vscrollbar_policy>
+	    <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+	    <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>False</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkLayout</class>
+	      <name>black_bg4</name>
+	      <area_width>400</area_width>
+	      <area_height>400</area_height>
+	      <hstep>10</hstep>
+	      <vstep>10</vstep>
 	    </widget>
 	  </widget>
 
@@ -782,7 +971,7 @@
 	  <class>GtkLabel</class>
 	  <child_name>Notebook:tab</child_name>
 	  <name>label39</name>
-	  <label>label39</label>
+	  <label>Downloader</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0.5</xalign>

@@ -13,14 +13,9 @@ class PEAR_Frontend_Gtk_Summary {
     var $active_package=""; // currently selected package
     
     function init() {
-         
-        //$this->Frontend_Gtk->_widget_package_list_holder->add($this->widget);
-        //$this->Frontend_Gtk->_widget_install->set_sensitive(0);
-        //$this->Frontend_Gtk->_widget_remove->set_sensitive(0);
-        //$this->Frontend_Gtk->_widget_getcvs->set_sensitive(0);
-        //$this->Frontend_Gtk->_widget_install->connect_object('pressed',array(&$this,'_callbackInstall'));
-        //$this->Frontend_Gtk->_widget_remove->connect_object('pressed',array(&$this,'_callbackRemove'));
-        //$this->Frontend_Gtk->_widget_getcvs->connect_object('pressed',array(&$this,'_callbackGetCvs'));
+        
+        $this->Frontend_Gtk->_widget_close_details->connect_object('pressed',array(&$this,'hide'));
+   
           
         
     }
@@ -40,11 +35,20 @@ documents.
 
     
     */
+    /*
+    * is the details tab visable
+    */
+    
+    var $_VisablePackageName = '';
+    /*
+    * show the details tab
+    */
     function show(&$package_info) {
         $this->Frontend_Gtk->_widget_details_area->show();
         $this->active_package = $package_info;
         //$this->Frontend_Gtk->_widget_install->set_sensitive(1);
         foreach($package_info as $k=>$v)  {
+            $v = str_replace("\r", '',$v);
             $var = "_widget_".strtolower($k);
             if (!is_object(@$this->Frontend_Gtk->$var)) continue;
             $w = &$this->Frontend_Gtk->$var;
@@ -60,12 +64,24 @@ documents.
 
             }
         }
+        $this->_detailsVisableFlag = $package_info['package'];
     
     }
     
-    function hide() {
-         $this->Frontend_Gtk->_widget_details_area->hide();
+    function toggle($package_info) {
+        if ($this->_detailsVisableFlag != $package_info['package']) {
+            $this->show($package_info);
+            return;
+        }
+        $this->hide();
+    }
+            
+        
     
+    
+    function hide() {
+        $this->Frontend_Gtk->_widget_details_area->hide();
+        $this->_detailsVisableFlag = '';
     
     }
     

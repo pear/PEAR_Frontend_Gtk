@@ -1,4 +1,4 @@
-<?php
+e<?php
 /*
   +----------------------------------------------------------------------+
   | PHP Version 4                                                        |
@@ -22,6 +22,7 @@
 require_once "PEAR.php";
 require_once "PEAR/Frontend/Gtk/Packages.php";
 require_once "PEAR/Frontend/Gtk/Summary.php";
+require_once "PEAR/Frontend/Gtk/Install.php";
 
 class PEAR_Frontend_Gtk extends PEAR
 {
@@ -55,7 +56,7 @@ class PEAR_Frontend_Gtk extends PEAR
         if (!extension_loaded('php_gtk')) {
             dl('php_gtk.' . (OS_WINDOWS ? 'dll' : 'so'));
         }
-        echo "LOADED?";
+        //echo "LOADED?";
         $this->_loadGlade();
         $this->_initInterface();
     }
@@ -90,6 +91,17 @@ class PEAR_Frontend_Gtk extends PEAR
      * @access private
      */
     var $_summary; 
+      /**
+     * the class manages package installation
+     * @var object PEAR_Frontend_Gtk_Install
+     * @access private
+     */
+    var $_install; 
+    
+    
+    
+    
+    
     
     /*
     * add the callbacks 
@@ -101,22 +113,23 @@ class PEAR_Frontend_Gtk extends PEAR
     function _initInterface() {
         // must be a better way - still needs to read -c -C optss
         $this->config = &PEAR_Config::singleton('','');
-         
+        
+        // initialize child objects
+        
         $this->_package_list = &new PEAR_Frontend_Gtk_Packages;
         $this->_package_list->Frontend_Gtk = &$this;
         $this->_package_list->init();
         $this->_summary = &new PEAR_Frontend_Gtk_Summary;
         $this->_summary->Frontend_Gtk = &$this;
         $this->_summary->init(); 
-        
+        $this->_install = &new PEAR_Frontend_Gtk_Install;
+        $this->_install->Frontend_Gtk = &$this;
+        $this->_install->init(); 
         
         $this->_widget_window->connect_after('realize',array(&$this,'_callbackWindowConfigure'));
         $this->_widget_window->connect_after('configure_event',array(&$this,'_callbackWindowConfigure'));
         
-        $this->_widget_nav_bar->connect_after(
-                'expose_event',array(&$this,   '_callbackNavBarExpose'));
-        $this->_widget_nav_bar->connect_after(
-                'configure_event',array(&$this,   '_callbackNavBarExpose'));
+        
         
         
         $this->_widget_installer_logo = & new GtkDrawingArea();
@@ -134,6 +147,8 @@ class PEAR_Frontend_Gtk extends PEAR
         $this->_widget_window->show();
     
     }
+    
+    var $_windowConfiguredFlag = FALSE;
     /*
     * window realized - load pixmaps etc.
     *  
@@ -142,94 +157,65 @@ class PEAR_Frontend_Gtk extends PEAR
 
     function _callbackWindowConfigure($window) {
         // must be a better way - still needs to read -c -C optss
+        
+        
         $this->_initPixmaps($window);
-         
-        $child = $this->_widget_pear_installer_button->child;
         
-        
-        $this->_loadNavBar();
-        
-        
-        $this->_loadButton('pear_installer_button' , 'nav_installer.xpm');
-        $this->_loadButton('config_button' , 'nav_configuration.xpm');
-        $this->_loadButton('documentation_button' , 'nav_documentation.xpm');
-        /*
-        $widget= $this->_widget_nav_bar;
-        $current_style=$widget->get_style();
-        $new_style = $current_style->copy(); 
-        $new_style->bg[GTK_STATE_NORMAL]=new GdkColor('#339900'); 
-        $new_style->bg[GTK_STATE_NORMAL]=new GdkColor('#339900'); 
-        $widget->set_style($new_style);
-      
-        gdk::draw_rectangle($widget->window,
-            $widget->style->bg_gc[GTK_STATE_NORMAL],
-            true, 0, 0,
-            $widget->allocation->width,
-            $widget->allocation->height);
-         
-        */
-        
-         
-    }
+        if ($this->_windowConfiguredFlag) return;
+        $this->_windowConfiguredFlag = TRUE;
+        /* main package selection tab */
+        $this->_setStyle('nav_bar','','#7b7d7a',FALSE);
     
-    function _loadNavBar() {
-    // this stuff only gets done once  
-    
-        $widget = $this->_widget_nav_bar;
-        /*
-        $child = $widget->child;
-        if ($child)
-            if (get_class($child) == "GtkVBox") return;
-       
-        $widget->remove($child);
+        $this->_setStyle('pear_installer_button','#000000','#7b7d7a');
+        $this->_setStyle('config_button','#000000','#7b7d7a');
+        $this->_setStyle('documentation_button','#000000','#7b7d7a');
         
-        // remove the nave bar from it's parent
-        $nav_bar = $this->_widget_nav_bar;
-        $parent = $nav_bar->parent;
-        $parent->remove($nav_bar);
-       // $widget->pack_start( $nav_bar, true  , true  , 2);
-        $widget->add($nav_bar);
+        $this->_setStyle('black_bg1','#FFFFFF','#000000',TRUE);
+        $this->_setStyle('black_bg2','#FFFFFF','#000000',TRUE);
+        $this->_setStyle('black_bg3','#FFFFFF','#000000',TRUE);
+        $this->_setStyle('black_bg4','#FFFFFF','#000000',TRUE);
         
-        */
-        // now change the style of the navbar!
+        $this->_setStyle('download_list','#000000','#FFFFFF',TRUE);
+        $this->_setStyle('close_details','#FFFFFF','#000000',FALSE);
+        
+        // sort out the text.
+        $this->_setStyle('summary'   ,'#FFFFFF','#000000',TRUE);
+        $this->_setStyle('black_msg1','#FFFFFF','#000000',TRUE);
+        
         $newstyle = &new GtkStyle();
-      
+        $this->_widget_packages_install->set_style($newstyle);
+        
+        $this->_loadButton('pear_installer_button' ,'nav_installer.xpm');
+        $this->_loadButton('config_button' ,        'nav_configuration.xpm');
+        $this->_loadButton('documentation_button' , 'nav_documentation.xpm');
+        $this->_loadButton('close_details' ,        'black_close_icon.xpm');
+        
+        /* downloding tab */
+        $this->_setStyle('white_bg1','#000000','#FFFFFF',TRUE);
+        $download_icon  = &new GtkPixmap(
+            $this->_pixmaps['downloading_image.xpm'][0],
+            $this->_pixmaps['downloading_image.xpm'][1]);
+        $this->_widget_white_bg1->put($download_icon,0,0);
+        $download_icon->show();
+        $this->_setStyle('downloading_logo','#000000','#339900',TRUE);
+        $this->_setStyle('downloading_logo_text','#FFFFFF','#339900'); 
+        $this->_widget_downloading_logo_text->set_justify( GTK_JUSTIFY_LEFT );
+        $installer_logo = &new GtkPixmap(
+            $this->_pixmaps['pear.xpm'][0],
+            $this->_pixmaps['pear.xpm'][1]);
+        $this->_widget_downloading_logo->put($installer_logo,0,0);
+        $installer_logo->show();
+        
+        
          
-       
-        $bg = &new GdkColor('#7b7d7a');
-        $newstyle->bg[GTK_STATE_PRELIGHT] = $bg;
-        $newstyle->bg[GTK_STATE_NORMAL] = $bg;
-        $newstyle->bg[GTK_STATE_ACTIVE] = $bg;
-        
-        $newstyle->bg[GTK_STATE_SELECTED] = $bg;
-        $newstyle->bg[GTK_STATE_INSENSITIVE] = $bg;
-        $widget->set_style($newstyle);
-         
-        
-        
-        
-        
-    
     }
-    function _callbackNavBarExpose($widget,$event) {
-        /*
-        $widget= $this->_widget_nav_bar;
-        $current_style=$widget->get_style();
-        $new_style = $current_style->copy(); 
-        $new_style->bg[GTK_STATE_NORMAL]=new GdkColor('#339900'); 
-        $new_style->bg[GTK_STATE_NORMAL]=new GdkColor('#339900'); 
-        $widget->set_style($new_style);
-        
-        gdk::draw_rectangle($widget->window,
-            $widget->style->bg_gc[GTK_STATE_NORMAL],
-            true, 0, 0,
-            $widget->allocation->width,
-            $widget->allocation->height);
-        */
-    
-    }
+    /*
+    * load the images onto the left navbar
+    *  
+    */
     
     function _loadButton($widgetname, $icon) {
+        echo $widgetname;
         $widget_fullname = "_widget_". $widgetname;
         $widget = &$this->$widget_fullname;
         
@@ -238,43 +224,54 @@ class PEAR_Frontend_Gtk extends PEAR
             if (get_class($child) == "GtkVBox") return;
        
         $widget->set_relief(GTK_RELIEF_NONE);
-        $oldstyle = $widget->style;
-        $newstyle = $oldstyle->copy();;
-        $fg = &new GdkColor('#000000');
-        $newstyle->fg[GTK_STATE_PRELIGHT] = $fg;
-        $newstyle->fg[GTK_STATE_NORMAL] = $fg;
-        $newstyle->fg[GTK_STATE_ACTIVE] = $fg;
-        
-        $newstyle->fg[GTK_STATE_SELECTED] = $fg;
-        $newstyle->fg[GTK_STATE_INSENSITIVE] = $fg;
-        
-        //$child->set_style($newstyle);
-        $newstyle = &new GtkStyle();
-        
-        $bg = &new GdkColor('#7b7d7a');
-        $newstyle->bg[GTK_STATE_PRELIGHT] = $bg;
-        $newstyle->bg[GTK_STATE_NORMAL] = $bg;
-        $newstyle->bg[GTK_STATE_ACTIVE] = $bg;
-        
-        $newstyle->bg[GTK_STATE_SELECTED] = $bg;
-        $newstyle->bg[GTK_STATE_INSENSITIVE] = $bg;
-        $widget->set_style($newstyle);
-        
-        
-        
+          
         //$widget->set_usize(150,100);
         $vbox = new GtkVBox; 
         
       // this stuff only gets done once
-        $widget->remove($child);
+        if ($child)
+            $widget->remove($child);
         $pixmap = &new GtkPixmap($this->_pixmaps[$icon][0],$this->_pixmaps[$icon][1]);
         $vbox->pack_start( $pixmap, true  , true  , 2);
-        $vbox->pack_end($child,true,true,2);
+        if ($child)
+            $vbox->pack_end($child,true,true,2);
         $widget->add($vbox);
         //$widget->set_usize(150,100);
         $vbox->show();
         $pixmap->show();
      
+    }
+    
+    
+    function _setStyle($widgetname,$fgcolor='',$bgcolor='',$copy=FALSE) {
+        echo "SET: $widgetname: $fgcolor/$bgcolor ". ((int) $copy) . "\n";
+        $widget_fullname = "_widget_". $widgetname;
+        $widget = &$this->$widget_fullname;
+        if ($copy) {
+            $oldstyle = $widget->get_style();
+            $newstyle = $oldstyle->copy();
+        } else {
+            $newstyle = &new GtkStyle();
+        }
+        if ($fgcolor) { // set foreground color
+            $fg = &new GdkColor($fgcolor);
+            $newstyle->fg[GTK_STATE_PRELIGHT] = $fg;
+            $newstyle->fg[GTK_STATE_NORMAL] = $fg;
+            $newstyle->fg[GTK_STATE_ACTIVE] = $fg;
+            $newstyle->fg[GTK_STATE_SELECTED] = $fg;
+            $newstyle->fg[GTK_STATE_INSENSITIVE] = $fg;
+        }
+        if ($bgcolor) { // set background color
+            $bg = &new GdkColor($bgcolor);
+            $newstyle->bg[GTK_STATE_PRELIGHT] = $bg;
+            $newstyle->bg[GTK_STATE_NORMAL] = $bg;
+            $newstyle->bg[GTK_STATE_ACTIVE] = $bg;
+            $newstyle->bg[GTK_STATE_SELECTED] = $bg;
+            $newstyle->bg[GTK_STATE_INSENSITIVE] = $bg;
+        }
+        $widget->set_style($newstyle);
+    
+    
     }
     
     var $_pixmaps = array(); // associative array of filename -> pixmaps|mask array objects used by application
@@ -291,7 +288,8 @@ class PEAR_Frontend_Gtk extends PEAR
         if (!$dh) return;
         while (($file = readdir($dh)) !== FALSE) {
             if (@$file{0} == '.') continue;
-            echo "loading {$dir}/{$file}";
+            if (!preg_match('/\.xpm$/',$file)) continue;
+            //echo "loading {$dir}/{$file}";
             $this->_pixmaps[$file] =  
                 Gdk::pixmap_create_from_xpm($window->window, NULL, "{$dir}/{$file}");
                 
@@ -303,7 +301,7 @@ class PEAR_Frontend_Gtk extends PEAR
     
     
     function _callbackInstallerLogoConfigure($widget,$event) {
-        echo "Configure event";
+        //echo "Configure event";
         //if (@$this->_logo_pixmap) return;
         
         $this->_logo_pixmap = &new GdkPixmap($widget->window,
@@ -342,7 +340,7 @@ class PEAR_Frontend_Gtk extends PEAR
     
     
     function _callbackInstallerLogoExpose($widget,$event) {
-         echo "Expose event"; 
+        // echo "Expose event"; 
        
         gdk::draw_pixmap($widget->window,
             $widget->style->fg_gc[$widget->state],
