@@ -124,6 +124,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         $this->_nextLine("BEGIN");
         $endpos = count($this->_tokens);
         for($pos = 0;$pos < $endpos;$pos++) {
+            while(gtk::events_pending()) gtk::main_iteration();
             $item = $this->_tokens[$pos]; 
             if (is_Array($item)) {
                 $method = "push";
@@ -324,7 +325,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                         //$this->output($item[0]);
                         $this->linebr($this->_tokens[$pos][0],$pos);
                         $this->$method($item[0],$pos);
-                        
+                        break;
                     case 'SELECT': // hide this stuff
                     case 'TEXTAREA':
                     case 'T':
@@ -416,7 +417,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             if ($this->_area_x > $this->_pixmap_area_x) $this->_pixmap_area_x = $this->_area_x;
             if ($this->_area_y > $this->_pixmap_area_y) $this->_pixmap_area_y = $this->_area_y;
             if (@$this->pixmap) unset($this->pixmap);
-            echo "REMAKING PIXMAP: {$this->_area_x}\n";
+            //echo "REMAKING PIXMAP: {$this->_pixmap_area_x},{$this->_pixmap_area_y}\n";
             $this->pixmap = new GdkPixmap($this->drawing_area->window,
                 $this->_pixmap_area_x ,$this->_pixmap_area_y,
                 -1);
@@ -430,7 +431,11 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             $this->_drawPart($id);
         
         $this->_DrawingAreaRepaint();
-         
+        
+        $vadj = $this->layout->get_vadjustment();
+        $vadj->set_value(0);
+        $vadj->changed();
+        
         
         //print_r($this->tables);
         //print_r($this->_lines);
@@ -574,9 +579,11 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         
         if (!$this->Start) return;
         $string = $this->unhtmlentities($string);
-        if (!$this->inID('PRE')) 
+        if (!$this->inID('PRE')) {
             $string = trim(preg_replace("/[\n \t\r]+/m", ' ',$string)) . ' ';
-        if (!trim($string)) return; // except PRE stuff!q
+        } else {
+            if (!trim($string)) return; // except PRE stuff!q
+        }
         
         // invisible stuff
         if ($this->inID('SELECT')) return;
@@ -584,11 +591,13 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         
         $this->_makeFont();
         $this->_makeColors();
-        //$this->_setStyle();
+        //echo $this->inID('PRE') ."output  {$string}\n";
+        
         if ($this->inID('PRE')) {
             $this->outputPRE($string,$pos);
             return;
         }
+        
         $this->outputTEXT($string,$pos);
     
     }
@@ -650,7 +659,8 @@ class PEAR_Frontend_Gtk_WidgetHTML {
     function outputPRE($string,$pos) { // output preformated text
     
          
-        if (!strpos($string,"\n")) {
+        if (strpos($string,"\n") === FALSE) {
+             
             $this->outputTEXT($string,$pos);
             return;
         }
@@ -659,10 +669,14 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         // array of lines (startpos,len,text)
         $c = count($array) -1;
         foreach($array as $i=>$line) {
-            $this->_updateLine($line, 'outputPRE');
-            $this->outputTEXT($line,$pos);
-            $this->_nextLine('PREout');
             $this->_TDaddLine('PRE out');
+            $this->_updateLine($line, 'outputPRE');
+            //echo "OUTPUT PRE: $line\n";
+            $this->outputTEXT($line,$pos);
+            if ($c != $i) {
+                $this->_nextLine('PREout');
+                
+            }
         }
         
     }
@@ -672,6 +686,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         //print_r($part);
         //print_r($line);
         //exit;
+        while(gtk::events_pending()) gtk::main_iteration();
         if ($url = $part['href']) {
             $link = array(
                 'left' => $part['left'] + $line['leftshift'],
@@ -682,12 +697,12 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             );
             $this->_links[] = $link;
         }
-        
-        gdk::draw_rectangle($this->pixmap,
-            $this->_gcs[$part['bggc']],true,    
-            $part['left'] + $line['leftshift'],  $line['top'], 
-            $part['width'], $line['height']
-        );
+        if (trim($part['string']))  
+            gdk::draw_rectangle($this->pixmap,
+                $this->_gcs[$part['bggc']],true,    
+                $part['left'] + $line['leftshift'],  $line['top'], 
+                $part['width'], $line['height']
+            );
                 
         gdk::draw_text($this->pixmap, 
             $this->_fonts[$part['font']], $this->_gcs[$part['gc']] , 
@@ -700,12 +715,14 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                 $part['left'] + $line['leftshift'],  $line['top'] + $line['height'] -1, 
                 $part['width'], 1
             );
+        /*
         $this->drawing_area->draw(
             new GdkRectangle(
                 $part['left'] + $line['leftshift'],  $line['bottom'], 
                 $part['width'], $line['height']
             )
         );
+        */
         
      
         
@@ -718,15 +735,18 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             echo 'NO BGGC';
             return;
         }
+        while(gtk::events_pending()) gtk::main_iteration();
         gdk::draw_rectangle($this->pixmap,
             $this->_gcs[$ar['bggc']],true,    
             $ar['left'], $ar['top'], 
             $ar['right'], $ar['bottom'] -$ar['top']
         );
+        /*
         $this->drawing_area->draw(
             new GdkRectangle(
                 $ar['left'], $ar['top'], 
                 $ar['right'], $ar['bottom'] - $ar['top']));
+            */
     }
     function _breakString($start,$left,$right,$string) { // break a string into lines and return an array 
          
@@ -748,7 +768,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             }
             // its longer! and buffer is empty.. (and it's the first line!
             if ($buf == "" && ($start != $left)) {
-                $ret[] = array($start,0,'');
+                $ret[] = array($start,0,' ');
                 $start = $left;
                 if ($l[2] < ($right - $start)) {
                     $buf =  $w;
@@ -778,7 +798,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         $trans_tbl = get_html_translation_table (HTML_ENTITIES);
         $trans_tbl = array_flip ($trans_tbl);
         $ret = strtr ($string, $trans_tbl);
-        return  preg_replace('/\&\#([0-9]+)\;/me',"chr('\\1')",$ret);
+        return  preg_replace('/\&\#([0-9]{2,3})\;/me',"chr('\\1')",$ret);
     }
     
     /* -----------------------------LINE SUTFF -------------------*/
@@ -1034,7 +1054,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         //$this->drawing_area->set_events( GDK_ALL_EVENTS_MASK );
        // $this->layout->add_events(   GDK_KEY_PRESS_MASK   );
             
-        //$this->drawing_area->set_flags( GTK_CAN_FOCUS);
+        $this->drawing_area->set_flags( GTK_CAN_FOCUS);
         
         
         
@@ -1120,7 +1140,10 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             
             $this->_area_x = $this->_new_area_x;
             $this->_flag_rebuild = TRUE;
+            $this->_setCursor(GDK_CLOCK);
+            while(gtk::events_pending()) gtk::main_iteration();
             $this->build();
+            $this->_setCursor(GDK_ARROW);
             while(gtk::events_pending()) gtk::main_iteration();
             $this->_flag_rebuild = FALSE;
         }
@@ -1160,10 +1183,12 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                 $url = $this->active_link;
             
             } else {
+                $path = dirname($this->_URLparse['path']) . '/';
+                if ($this->_URLparse['path']{strlen($this->_URLparse['path']) -1} == '/') 
+                    $path = $this->_URLparse['path'];
                 $url = $this->_URLparse['scheme'] . "://". 
                     $this->_URLparse['host'] . 
-                    dirname($this->_URLparse['path']) . '/' .
-                    $this->active_link;
+                    $path.$this->active_link;
             }
              
             $this->_setCursor(GDK_CLOCK);
@@ -1231,9 +1256,9 @@ class PEAR_Frontend_Gtk_WidgetHTML {
     function _TABLEcalc($pos) { // read a table and guess it's widths (left/right)
         $left = $this->tables[$pos]['left'];
         $right = $this->tables[$pos]['right'];
-
+        $maxwidth = $right-$left;
         $tableid = $pos;
-        if (preg_match("/\swidth\=[\"\']?([0-9]+)([%]*)[\"\']?/mi",' '.$this->_tokens[$pos][1],$args)) {
+        if (preg_match("/\swidth\=[\"\']?([0-9]+)([%]?)[\"\']?/mi",' '.$this->_tokens[$pos][1],$args)) {
             if ($args[2]) { 
                 $right = $left + (int) (0.01 * $args[1]  * ($right - $left));
             } else {
@@ -1241,6 +1266,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
             }
 
         }
+        
         
         $pos++;
         
@@ -1372,7 +1398,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         
         
         /* calculate the width */
-        $colsizes = $this->_TABLEcalcWidth($colsizes, $right-$left, $totalcols);
+        $colsizes = $this->_TABLEcalcWidth($colsizes, $maxwidth, $totalcols,$tableid);
         
         
         
@@ -1414,7 +1440,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         $this->tables[$tableid]['cells'] =$cells;
         $this->tables[$tableid]['colsizes'] =$colsizes;
         $this->tables[$tableid]['left'] =$left;
-        $this->tables[$tableid]['right'] =$right;
+        $this->tables[$tableid]['right'] =$left + $maxwidth;
         $this->tables[$tableid]['totalrows'] =$totalrows;
         $this->tables[$tableid]['totalcols'] =$totalcols;
         //print_r($this->tables); exit;
@@ -1422,7 +1448,8 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         
     }
     
-    function _TABLEcalcWidth($cols,$width,$total) { // calculate a tables column sizes 
+    function _TABLEcalcWidth($cols,$width,$total,$tableid) { // calculate a tables column sizes 
+    
         $res = array();
         // add up the widths
         // and how many cells are used
@@ -1454,6 +1481,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         /*
         print_r(
             array(
+                'tableid' => $tableid,
                 'cols' =>$cols,
                 'width' =>$width,
                 'total' =>$total,
@@ -1463,7 +1491,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                 'factor' => $factor,
                 'sum' => $sum
                 ));
-        exit;
+        
         */
         return $res;
     }
