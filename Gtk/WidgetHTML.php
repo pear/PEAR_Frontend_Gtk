@@ -226,7 +226,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                             $this->_lines[$this->_line]['x'] = $this->td[$pos]['left'];
                             
                             // this doesnt matter -   gets changed later...
-                            $this->_lines[$this->_line]['top'] = $this->td[$pos]['top'];
+                            //$this->_lines[$this->_line]['top'] = $this->td[$pos]['top'];
                             
                             $this->_makeColors();
                              
@@ -302,9 +302,10 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                 }
             $this->output($item,$pos);
         }
-        $this->linebr();  
-        //$this->_area_y = $this->_y+16;
-        //$this->layout->set_size($this->_area_x , $this->_area_y );
+        $this->linebr();   
+        
+        $this->_area_y = $this->_lines[$this->_line]['bottom'] ;
+        $this->layout->set_size($this->_area_x , $this->_area_y );
         $this->layout->thaw();
         //return;
         //print_r($this->td);
@@ -570,7 +571,11 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         );
     }
     function _drawBlock($ar) {
-        if (!$ar['bggc']) { print_r($ar); echo 'NO BGGC';exit; }
+        if (!$ar['bggc']) { 
+            print_r($ar); 
+            echo 'NO BGGC';
+            return;
+        }
         gdk::draw_rectangle($this->pixmap,
             $this->_gcs[$ar['bggc']],true,    
             $ar['left'], $ar['top'], 
@@ -685,6 +690,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         }
         
         $this->_lines[$this->_line]['left'] = $this->_lines[$this->_line-1]['left'];
+        $this->_lines[$this->_line]['right_from_last'] = $this->_lines[$this->_line-1]['right'];
         $this->_lines[$this->_line]['right'] = $this->_lines[$this->_line-1]['right'];
         $this->_lines[$this->_line]['x'] =$this->_lines[$this->_line]['left'];
         
@@ -985,7 +991,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         $tableid = $pos;
         if (preg_match("/\swidth\=[\"\']?([0-9]+)([%]*)[\"\']?/mi",' '.$this->_tokens[$pos][1],$args)) {
             if ($args[2]) { 
-                $right = (int) (0.01 * $args[1]  * ($right - $left));
+                $right = $left + (int) (0.01 * $args[1]  * ($right - $left));
             } else {
                 $right = $left + $args[1];
             }
@@ -1318,9 +1324,11 @@ class PEAR_Frontend_Gtk_WidgetHTML {
 dl('php_gtk.so');
 error_reporting(E_ALL);
 $t = new PEAR_Frontend_Gtk_WidgetHTML;
- $t->test(dirname(__FILE__).'/tests/test3.html');
- $t->test(dirname(__FILE__).'/tests/packages.templates.it.html');
+ //$t->test(dirname(__FILE__).'/tests/test3.html');
+//$t->test(dirname(__FILE__).'/tests/packages.templates.it.html');
 //$t->test('http://pear.php.net/manual/en/packages.templates.it.php');
+//$t->test('http://docs.akbkhome.com/PHPcodedoc/PHP_CodeDoc.html');
+$t->test('http://www.php.net/');
 $t->tokenize();
 $t->testInterface();
 //$t->build();
