@@ -126,7 +126,10 @@ class PEAR_Frontend_Gtk_Packages {
     */
     function _loadRemotePackages () {
         $r = new PEAR_Remote($this->ui->config);
-        $remote = $r->call('package.listAll', true);
+        $options = false;
+        if ($this->ui->config->get('preferred_state') == 'stable')
+            $options = true;
+        $remote = $r->call('package.listAll', false);
         if (PEAR::isError($remote)) {
             $this->ui->displayFatalError($remote);
             return;
