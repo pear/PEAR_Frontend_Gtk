@@ -22,8 +22,9 @@
   </maintainers>
    <release>
       <version>0.3</version>
-      <date>2002-06-19</date>
-      <notes>Attempt to fix package</notes>
+      <date>2002-07-25</date>
+      <notes>Attempt to fix package file so it installs,
+           some of the warnings have been fixed</notes>
       <state>beta</state>
     <filelist>
       <dir name="/" baseinstalldir="PEAR/Frontend">
@@ -63,8 +64,9 @@
   <changelog>
     <release>
       <version>0.3</version>
-      <date>2002-06-19</date>
-      <notes>Attempt to fix package</notes>
+      <date>2002-07-25</date>
+      <notes>Attempt to fix package file so it installs,
+           some of the warnings have been fixed</notes>
       <state>beta</state>
     </release>
     <release>
