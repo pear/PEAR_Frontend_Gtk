@@ -328,7 +328,10 @@ documents.
     
     
     
-    
+    /*
+    * Load the local packages into this->_localPackageCache
+    *  
+    */
     function loadLocalPackages () {
         $reg = new PEAR_Registry($this->ui->config->get('php_dir'));
         $installed = $reg->packageInfo();
@@ -339,7 +342,10 @@ documents.
             $this->_localPackagesCache[$package->name] = $package;
         }
     }
-    
+    /*
+    * Load the remote packages into this->_remotePackageCache
+    *  
+    */
     function loadRemotePackages () {
         $r = new PEAR_Remote($this->ui->config);
         $remote = $r->call('package.listAll', true);
@@ -353,7 +359,10 @@ documents.
             $this->_remotemotePackageCache[] = $package;
         }
     }
-    
+    /*
+    * Add local and remote together and store in this->packages
+    * Not: remembers installation status.
+    */
     function mergePackages () { // builds a mreged package list
         // start with remote list.
         $newpackages = array();
@@ -374,16 +383,24 @@ documents.
             $newpackages[$name]->QueueInstall = $package->QueueInstall;
             $newpackages[$name]->QueueRemove = $package->QueueRemove;
         }
+        ksort($newpackages);
         $this->packages = $newpackages;
     }
     
+    /*
+    * Reset the Queues on all objects
+    */
     function resetQueue() {
         foreach(array_keys($this->packages) as $packagename) {
             $this->packages[$packagename]->QueueInstall = FALSE;
             $this->packages[$packagename]->QueueRemove = FALSE;
         }
     }
-    
+    /*
+    * Get the List of packages to install
+    *
+    *@return array  array of PackageData objects
+    */
     function &getInstallQueue() {
         $ret = array();
         foreach(array_keys($this->packages) as $packagename) {
@@ -392,7 +409,11 @@ documents.
         }
         return $ret;
     }
-    
+    /*
+    * Get the Packages to Remove.
+    *
+    *@return array  array of PackageData objects
+    */
     function &getRemoveQueue() {
         $ret = array();
         foreach(array_keys($this->packages) as $packagename) {
@@ -402,6 +423,62 @@ documents.
         return $ret;
     }
     
+    /*
+    * Nodes in a CTreeNodes
+    *
+    * @var array of Category Nodes
+    *
+    */
+    var $_categoryNodes = array();
+    
+    /*
+    * Load the package list into the clist.
+    *
+    *@return array  array of PackageData objects
+    */
+    function loadPackageList() {
+        //while(gtk::events_pending()) gtk::main_iteration();
+        $this->widget->clear();
+        $this->widget->freeze();
+         
+        foreach (array_keys($this->packages) as $packagename) {
+            $package = &$this->packages[$packagename];
+            $parent = $this->_getCategoryNode($package);
+            $package->CreateNode($this->widget,$parent);
+        }
+        $this->widget->thaw();
+      
+    }
+    /*
+    * Load the package list into the clist.
+    *
+    *@return array  array of PackageData objects
+    */
+    function &_getCategoryNode(&$package) {
+        $ret = NULL;
+        if ($package->category == $package->name) 
+            return $ret;
+            
+        if (@$this->_categoryNodes[$package->category]) 
+            return $this->_categoryNodes[$package->category];
+        
+        if (@$this->packages[$package->category])
+            return $this->packages[$package->category]->cTreeNode;
+            
+            
+        $this->_CategoryNodes[$package->category] = $this->widget->insert_node(
+            NULL, NULL, //parent, sibling
+            array($package->category, '','','','',''),5, 
+            $this->ui->_pixmaps['folder_closed.xpm'][0],
+            $this->ui->_pixmaps['folder_closed.xpm'][1],  
+            $this->ui->_pixmaps['folder_open.xpm'][0],
+            $this->ui->_pixmaps['folder_open.xpm'][1],
+            false,true
+        ); 
+               
+        return $this->_categoryNodes[$package->category];
+        
+    }
     
     
 }
