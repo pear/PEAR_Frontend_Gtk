@@ -18,12 +18,13 @@
 
   $Id$
 */
-
+require('PEAR/Frontend/Gtk/PackageData.php');
 /**
  * Gtk Frontend - Section that deals with package lists
  *
  * @author Alan Knowles <alan@akbkhome.com>
  */
+
 
 class PEAR_Frontend_Gtk_Packages {
 
@@ -56,12 +57,9 @@ class PEAR_Frontend_Gtk_Packages {
     function _loadPackageData() {
         $reg = new PEAR_Registry($this->ui->config->get('php_dir'));
         $installed = $reg->packageInfo();
-       
-        
         
         foreach ($installed as $i=>$package) 
             $this->_package_status[$package['package']] = &$installed[$i];
-            
         
         // get available
         if (!$this->_available_packages) {
@@ -312,6 +310,99 @@ documents.
         
     }
     
+    
+    
+    /*------------------------------------- New Data stuff.. ----------------------*/
+    
+    var $_remotePackageCache;  // array of remote packages.
+    var $_localPackageCache;   // array of local packages
+    var $packages;              // associative array of packagename : package
+    
+    
+    function PEAR_Frontend_Gtk_PackageDataCollection(&$ui) {
+        $this->ui = &$ui;
+        $this->loadLocalPackages();
+        $this->loadRemotePackages();
+        $this->mergePackages();
+    }
+    
+    function loadLocalPackages () {
+        $reg = new PEAR_Registry($this->ui->config->get('php_dir'));
+        $installed = $reg->packageInfo();
+        $this->_localPackagesCache = array();
+        foreach($installed as $packagear) {
+            $package = PEAR_Frontend_Gtk_PackageData::staticNewFromArray($packagear);
+            $package->name = $package->package;
+            $this->_localPackagesCache[$package->name] = $package;
+        }
+    }
+    
+    function loadRemotePackages () {
+        $r = new PEAR_Remote($this->ui->config);
+        $remote = $r->call('package.listAll', true);
+        if (PEAR::isError($packagear)) {
+            // whats the official way to hanlde this?
+            echo $this->_available_packages->message . '\n';
+            exit;
+            
+        }
+        foreach ($remote as as  $name => $packagear) {
+            $package = PEAR_Frontend_Gtk_PackageData::staticNewFromArray($packagear);
+            $package->name = $name;
+            $this->_remotemotePackageCache[] = $package;
+        }
+    }
+    
+    function mergePackages () { // builds a mreged package list
+        // start with remote list.
+        $newpackages[];
+        foreach ($this->_remotePackageCache as $package) 
+            $newpackages[$package->name] = $package;
+        
+        // merge local.    
+        foreach ($this->_localPackageCache as $package) {
+            if (@$newpackages[$package->name]) {
+                $newpackages[$package->name]->merge($package);
+            } else {
+                $newpackages[$package->name] = $package;
+            }
+            $newpackages[$name]->isInstalled = TRUE;
+        }
+        //merge existing status stuff..
+        foreach ($this->packages as $name=>$package) {
+            $newpackages[$name]->QueueInstall = $package->QueueInstall;
+            $newpackages[$name]->QueueRemove = $package->QueueRemove;
+        }
+        $this->packages = $newpackages;
+    }
+    
+    function resetQueue() {
+        foreach(array_keys($this->packages) as $packagename) {
+            $this->packages[$packagname]->QueueInstall = FALSE;
+            $this->packages[$packagname]->QueueRemove = FALSE;
+        }
+    }
+    
+    function &getInstallQueue() {
+        $ret = array()
+        foreach(array_keys($this->packages) as $packagename) {
+            if (!$this->packages[$packagname]->QueueInstall) continue;
+            $ret[] = &$this->packages[$packagname];
+        }
+        return $ret;
+    
+    }
+    
+    function &getRemoveQueue() {
+        $ret = array()
+        foreach(array_keys($this->packages) as $packagename) {
+            if (!$this->packages[$packagname]->QueueRemove) continue;
+            $ret[] = &$this->packages[$packagname];
+        }
+        return $ret;
+    }
+    
+    
+    
 }
 ?>
-    
