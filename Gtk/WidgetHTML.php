@@ -52,18 +52,17 @@ class PEAR_Front_Gtk_WidgetHTML {
             $this->_tokens[] = array($tag,$attribs);
             $this->_tokens[] = substr($b,strpos($b,'>')+1);
         }
-        //print_r($this->_tokens);
+        // print_r($this->_tokens);
         //exit;
     }
     var $Start = FALSE; // start rering (eg. ignore headers)
     
     function build($startpos,$endpos) {
         $this->layout->freeze();
-        $this->Start=FALSE;
+        
         $this->_DrawingAreaClear();
         
         $this->_line_y = array();
-        $this->_y =10;
         $this->_states = array();
         $this->states = array();
         $this->cur = array();
@@ -71,10 +70,16 @@ class PEAR_Front_Gtk_WidgetHTML {
         // make a fake first line
         $this->_line =0;
         $this->_makeFont();
-        $this->_lines[$this->_line]['top'] =0;
+        $this->_lines[0]['top'] =0;
+        $this->_lines[0]['ascent'] =0;
+        $this->_lines[0]['descent'] =0;
         $this->_updateLine();
         $this->_lines[$this->_line]['bottom'] =0;
-        $this->_nextLine();
+        $this->_lines[0]['left'] = 10;
+        $this->_lines[0]['right'] = $this->_area_x;
+       
+       
+        $this->_nextLine("BEGIN");
         
         $this->pushState(0);                 
         for($pos = $startpos;$pos < $endpos;$pos++) {
@@ -84,7 +89,7 @@ class PEAR_Front_Gtk_WidgetHTML {
                 if (!$item[0]) continue;
                 //echo $pos;
                 //echo "\nIN:".serialize($item)."\n";
-                $this->outputTAG($item[0]);
+                //$this->outputTAG($item[0]);
                 if ($item[0]{0} == '/') {
                     $method = "pop";
                     $item[0] = substr($item[0],1);
@@ -121,77 +126,121 @@ class PEAR_Front_Gtk_WidgetHTML {
                         
                     case 'TABLE':               // unhandled stauff
                         if ($method == 'push') { // start
-                            //$this->pushState($pos);
                             // move us down abit and start a new row
-                            $this->_x = $this->_left;
-                            $this->tables[$pos]['top']  = $this->_lines[$this->_line]['bottom']; 
-                            $this->_nextLine();
-                            $this->_lines[$this->_line]['top'] = $this->tables[$pos]['top'];
-                            $this->_updateLine();
+                            $this->_nextLine('CLEARPRETABLE'); // clear old line...
+                            $this->_TDaddLine(); // add it to the table?
+                            $this->tables[$pos]['from last']   = serialize($this->_lines[$this->_line]); 
                             
-                            if ($this->pass == 1) {
-                                $this->calctable($pos,$this->_x ,$this->_right);
-                            } 
+                            $this->tables[$pos]['pos'] = $pos;
+                            $this->tables[$pos]['left']  =  $this->_lines[$this->_line]['left']; 
+                            $this->tables[$pos]['right'] =  $this->_lines[$this->_line]['right']; 
+                            $this->tables[$pos]['top']   = $this->_lines[$this->_line]['top']; 
+                            $this->_nextLine('TABLE'); // new line object that contains the table information.
+                            $this->_TDaddLine();
+                            $this->_lines[$this->_line]['top'] = $this->tables[$pos]['top'];
+                            
+                            
+                            $this->tables[$pos]['line'] = $this->_line;
+                            
+                            
+                            $this->_lines[$this->_line]['top'] = $this->tables[$pos]['top'];
+                            /*
+                            if ($id = $this->inID('TD')) {
+                                $this->td[$id]['lines'][] = $this->_line;
+                                $this->td[$id]['line_items'][$this->_line] = &$this->_lines[$this->_line];
+                            }
+                            */
+                            //$this->_updateLine("TABLE:{$pos}");// new line that is going to be the content.
+                            
+                            
+                            
+                            $this->_TABLEcalc($pos);
+                             
                             $this->push($item[0],$pos,@$item[1]);
                             //$this->output("TABLE:$pos");
-                            if ($this->pass == 2) 
-                                $this->_drawBlock($this->tables[$pos]);
+                            $this->_makeColors();
+                            $this->tables[$pos]['gc'] = $this->_gc;
+                            $this->tables[$pos]['bggc'] =$this->_bggc;
+                                
                         } else {  //
-                        
-                            $table = $this->pop('TABLE');
                             
-                            if ($this->pass == 1) 
-                                $this->_TABLErecalc($table);
-                                
+                             
                             
-                            //$this->popState($table);
-                            $this->_x = $this->_left;
-                           
-                            $this->_nextLine();
+                            $table = $this->pop('TABLE',$pos);
+                            
+                             
+                            $this->_TABLErecalc($table,$pos);
+                            $this->_TABLEmovelines($table);
+                            
+                            
+                            // update the container line
+                            $line = $this->tables[$table]['line'];
+                            $this->_lines[$line]['top'] = $this->tables[$table]['top']; 
+                            $this->_lines[$line]['descent'] = $this->tables[$table]['height'];
+                            $this->_lines[$line]['ascent'] = 0;
+                            $this->_lines[$line]['height'] = $this->tables[$table]['height'];
+                            $this->_lines[$line]['bottom'] = $this->tables[$table]['bottom'];
+                            
+                            //$this->_updateLine();
+                            $this->_nextLine('ENDTABLE - clear'); // start a new line
+                            $this->_TDaddLine();
+                            
+                            
+                            
+                            // move Y xursor.
                             $this->_lines[$this->_line]['top'] = $this->tables[$table]['bottom']; 
-                            $this->_updateLine();
-                           
+                            // move X xursor.
+                            $this->_lines[$this->_line]['left'] = $this->tables[$table]['left']; 
+                            $this->_lines[$this->_line]['right'] = $this->tables[$table]['right']; 
+                            $this->_lines[$this->_line]['x'] = $this->tables[$table]['left']; 
                             
-                            if ($this->pass == 2) { 
-                                //print_r($this->tables);
-                                //exit;
-                            }
-                                
-                            //$this->clearStack('TD',$table);
-                            //$this->clearStack('BGCOLOR',$table);
-                            //$this->clearStack('FGCOLOR',$table);
-                            //$this->clearStack('TR',$table);
+                            
                         }
                         break;
                         
                     
                     //case 'TR':
+                    case 'CAPTION':
+                    case 'TH':
+                        $item[0] = 'TD';
                     case 'TD':
                         
                         if ($method == 'push') { // start
-                            if (!@$this->td[$pos]) break;
+                            if (!@$this->td[$pos]) {
+                                $t = $this->inID('TABLE');
+                                print_r($this->tables[$t]);
+                                echo  "LOST TD?:$pos";
+                                exit;
+                            }
+                            $this->td[$pos]['lines'] = array(); 
+                            $this->td[$pos]['line_items'] = array();
                             //echo "TDPstart: $pos L:{$this->_left},{$this->_right}\n";
-                            $this->_nextLine();
                             
-                            if (!@$this->td[$pos]['top']) 
-                                $this->td[$pos]['top'] = $this->_lines[$this->_line]['top'];
+                            $this->push($item[0],$pos,@$item[1]); 
                             
-                            $this->_left = $this->td[$pos]['left'];
-                            $this->_right = $this->td[$pos]['right'];
                             
+                            
+                            
+                            
+                            $this->_nextLine("TD - start");
+                            $this->_TDaddLine();
+                                                        
+                            $this->_lines[$this->_line]['left'] = $this->td[$pos]['left'];
+                            $this->_lines[$this->_line]['right'] = $this->td[$pos]['right'];
+                            $this->_lines[$this->_line]['x'] = $this->td[$pos]['left'];
+                            
+                            // this doesnt matter -   gets changed later...
                             $this->_lines[$this->_line]['top'] = $this->td[$pos]['top'];
-                            $this->_updateLine();
                             
-                            $this->_x = $this->_left;
-                            $this->push($item[0],$pos,@$item[1]);
+                            $this->_makeColors();
+                             
+                            $this->td[$pos]['gc'] = $this->_gc;
+                            $this->td[$pos]['bggc'] =$this->_bggc;
                             
-                            if ($this->pass == 2) 
-                                $this->_drawBlock($this->td[$pos]);
                         } else {
-                            // pull back!
-                            $td = $this->pop('TD');
-                            //f ($this->pass == 2) 
-                            //    $this->_y =$this->td[$td]['bottom']; 
+                            $this->_nextLine('TD - END');
+                            $this->_TDaddLine();
+                            $td = $this->pop('TD',$pos);
                         }
                         
                         break;
@@ -249,7 +298,13 @@ class PEAR_Front_Gtk_WidgetHTML {
             }
             //echo $pos;
             // strings only!
-            $this->output($item);
+            if ($t = $this->inID('TABLE')) 
+                if ($t > ($td = $this->inID('TD'))) {
+                    if (trim($item))
+                        echo "TABLE : $t, TD: $td skipping\n";
+                    continue;
+                }
+            $this->output($item,$pos);
         }
         $this->linebr();  
         //$this->_area_y = $this->_y+16;
@@ -257,15 +312,27 @@ class PEAR_Front_Gtk_WidgetHTML {
         $this->layout->thaw();
         //return;
         //print_r($this->td);
-        if ($this->pass == 1) {
-            $this->pass++;
-            $this->build($startpos,$endpos);
-        }
+        //if ($this->pass == 1) {
+        //    $this->pass++;
+        //    $this->build($startpos,$endpos);
+        // }
+        foreach(array_keys($this->tables) as $pos)
+            $this->_drawBlock($this->tables[$pos]);
+        foreach(array_keys($this->td) as $pos)
+            $this->_drawBlock($this->td[$pos]);
+        foreach(array_keys($this->_textParts) as $id)
+            $this->_drawPart($id);
+        
         print_r($this->tables);
+        //print_r($this->_textParts);
 
     }
     
-    var $check = "";
+    
+    
+    
+    /*-----------------------------STACK STUFF--------------------------------*/
+    var $check = "TABLE|TD";
     
     var $_states = array(); // array of pos'id => various data!!!
     function pushState($id) {
@@ -298,7 +365,7 @@ class PEAR_Front_Gtk_WidgetHTML {
         $this->_stackAttributes($attributes,$pos,'push');
             
         if ($this->check  && preg_match("/^(".$this->check.")$/",$what)) { 
-            echo "\nPUSH:$what:".serialize($this->stack[$what]);
+            echo "\nPUSH:$what:";print_r($this->stack[$what]);
             echo "\nCUR:{$this->cur[$what]}";
         }
     }
@@ -314,7 +381,7 @@ class PEAR_Front_Gtk_WidgetHTML {
         $this->_stackAttributes($remove,$pos,'pop');
         /* debugging*/
         if ($this->check  && preg_match("/^(".$this->check.")$/",$what)) { 
-            echo "\nPOP:$what:".serialize($this->stack[$what]);
+            echo "\nPOP:$what:AT$pos:";print_r($this->stack[$what]);
             echo "\nCUR:{$this->cur[$what]}";
         }
         return $id;
@@ -345,6 +412,16 @@ class PEAR_Front_Gtk_WidgetHTML {
         $args = array();    
         if (preg_match("/\sbgcolor\=[\"\']?(\#[0-9A-F]+)[\"\']?/mi",' '.$attributes,$args))
             $this->$method("BGCOLOR",$pos,$args[1]);
+        
+        $colors = array(
+            "yellow" => "#FFFF00",
+            "blue" => "#0000FF"
+        );
+        
+        $args = array();    
+        if (preg_match("/\sbgcolor\=[\"\']?([a-z]+)[\"\']?/mi",' '.$attributes,$args))
+            $this->$method("BGCOLOR",$pos,strtolower($args[1]));
+
 
         $args = array();
         if (preg_match("/\stext\=[\"\']?(\#[0-9A-F]+)[\"\']?/mi",' '.$attributes,$args))
@@ -375,13 +452,17 @@ class PEAR_Front_Gtk_WidgetHTML {
     }
     
     
+    /*-----------------------------LINE STUFF --------------------------------*/
+    
+    
     function linebr($item='') {
         if (($item == "P") && ($this->lastbr == "P")) return;
         //if ($item && $this->lastbr && ($this->lastbr != $item)) return;
         //$this->widget->insert($this->_font,$this->_fgcolor,$this->bg_color,":$item:\n");
-        $this->_nextLine();
+        $this->_nextLine('LINEBREAK');
         $this->_updateLine();
-        $this->_x = $this->_left;
+        $this->_TDaddLine();
+        $this->lastbr = $item;
     }
     
     
@@ -394,25 +475,26 @@ class PEAR_Front_Gtk_WidgetHTML {
     var $_x = 10;
     var $_y = 20;
     
-    function output($string) {
+    function output($string,$pos) {
+        
         if (!$this->Start) return;
         $string = $this->unhtmlentities($string);
-        if (!$this->in('PRE')) 
+        if (!$this->inID('PRE')) 
             $string = trim(preg_replace("/[\n \t\r]+/m", ' ',$string)) . ' ';
         if (!trim($string)) return; // except PRE stuff!q
         
         // invisible stuff
-        if ($this->in('SELECT')) return;
-        if ($this->in('TEXTAREA')) return;
+        if ($this->inID('SELECT')) return;
+        if ($this->inID('TEXTAREA')) return;
         
         $this->_makeFont();
         $this->_makeColors();
         //$this->_setStyle();
-        if ($this->in('PRE')) {
-            $this->outputPRE($string);
+        if ($this->inID('PRE')) {
+            $this->outputPRE($string,$pos);
             return;
         }
-        $this->outputTEXT($string);
+        $this->outputTEXT($string,$pos);
     
     }
     
@@ -420,72 +502,67 @@ class PEAR_Front_Gtk_WidgetHTML {
             
         $this->_makeFont('-adobe-helvetica-bold-r-normal-*-*-80-*-*-p-*-iso8859-1');
         $this->_makeColors("#000000","#FFFF00",FALSE);
-        //$x= $this->_x;
-        //$y= $this->_y;
-        $this->outputTEXT("<{$tag}>",TRUE);
-        //$this->_x = $x;
-        //$this->_y = $y;
+        $this->outputTEXT("<{$tag}>");
     }
     
     var $line =0;
     
     
         
-    function outputTEXT($string) {
-    
-        $array = $this->_breakString($this->_x,$this->_left,$this->_right,$string);
+    function outputTEXT($string,$pos) {
+        
+        /*echo "outputTEXT ".
+        
+            "X:".$this->_lines[$this->_line]['x'] .
+            "L:". $this->_lines[$this->_line]['left']. 
+            "R:". $this->_lines[$this->_line]['right'].
+            "\n";
+        */
+        $array = $this->_breakString(
+            $this->_lines[$this->_line]['x'],
+            $this->_lines[$this->_line]['left'],
+            $this->_lines[$this->_line]['right'],
+            $string);
         // array of lines (startpos,len,text)
-        $h = $this->_font->ascent + $this->_font->descent;
+        //echo serialize($array);
         $c = count($array) -1;
-        foreach($array as $i=>$line) {
+        foreach($array as $i=>$data) {
 
-            if ($line[2]) {
+            if ($data[2] !== '') {
                 //$widget = &new GtkLabel($line[2]);
                 //$widget->set_style($this->_style);
                 //if ($this->pass == 2) 
                      //echo "ADD: {$line[0]},{$this->_y} : {$line[2]}\n";
                 //$this->layout->put($widget,$line[0],$this->_y);
-                $this->_updateLine($line[2]);
-                gdk::draw_rectangle($this->pixmap,
-                    $this->_bggc,true,    
-                    $line[0], $this->_lines[$this->_line]['bottom'], 
-                    $line[1], $this->_lines[$this->_line]['height']
-                );
+                $this->_updateLine($data[2]);
                 
-                gdk::draw_text($this->pixmap, 
-                    $this->_font, 
-                    $this->_gc  , 
-                    $line[0], 
-                    $this->_lines[$this->_line]['y'], 
-                    $line[2], strlen($line[2])
+                $this->_textParts[] = array(
+                    'string' => $data[2],
+                    'line' =>   $this->_line,
+                    'left' =>   $data[0],
+                    'width' =>  $data[1],
+                    'bggc' =>   $this->_bggc,
+                    'gc'   =>   $this->_gc,
+                    'font' =>   $this->_font,
                 );
-               
-                $this->drawing_area->draw(
-                    new GdkRectangle(
-                        $line[0], $this->_lines[$this->_line]['bottom'], 
-                        $line[1], $this->_lines[$this->_line]['height']));
                 //$widget->show();
-                $this->_updateLine();
-                if ($c != $i)
-                    $this->_nextLine();
-                $this->_updateLine();
-                    
+                $this->_updateLine("POS:$pos");
+                $this->_lines[$this->_line]['x'] = $data[0] + $data[1];   
+                if ($c != $i) {
+                    $this->_nextLine('TEXTout');
+                    $this->_updateLine();
+                    $this->_TDaddLine();
+                }
             }
-            
-            
-            
         } 
         
-        $this->_x = $line[0] + $line[1];
-        $this->lastbr = ''; 
     }
     
-    
-    function outputPRE($string) {
+    function outputPRE($string,$pos) {
     
          
         if (!strpos($string,"\n")) {
-            $this->outputTEXT($string);
+            $this->outputTEXT($string,$po);
             return;
         }
         
@@ -493,17 +570,52 @@ class PEAR_Front_Gtk_WidgetHTML {
         // array of lines (startpos,len,text)
         $c = count($array) -1;
         foreach($array as $i=>$line) {
-            $this->outputTEXT($line);
-            $this->_updateLine();
-            if ($i!= $c) {
-                $this->_nextLine();
-                $this->_x = $this->_left;
-            }
-            
+            $this->_updateLine($line);
+            $this->outputTEXT($line,$pos);
+            $this->_nextLine('PREout');
+            $this->_TDaddLine();
         }
-
-        $this->lastbr = ''; 
+        
     }
+    
+    function _drawPart($id) {
+        $part = $this->_textParts[$id];
+        $line = $this->_lines[$part['line']];
+        //print_r($part);
+        //print_r($line);
+        //exit;
+        gdk::draw_rectangle($this->pixmap,
+            $this->_gcs[$part['bggc']],true,    
+            $part['left'],  $line['top'], 
+            $part['width'], $line['height']
+        );
+                
+        gdk::draw_text($this->pixmap, 
+            $this->_fonts[$part['font']], $this->_gcs[$part['gc']] , 
+            $part['left'],  $line['y'], 
+            $part['string'], strlen($part['string'])
+        );
+        $this->drawing_area->draw(
+            new GdkRectangle(
+                $part['left'],  $line['bottom'], 
+                $part['width'], $line['height']
+            )
+        );
+    }
+    function _drawBlock($ar) {
+        if (!$ar['bggc']) { print_r($ar); echo 'NO BGGC';exit; }
+        gdk::draw_rectangle($this->pixmap,
+            $this->_gcs[$ar['bggc']],true,    
+            $ar['left'], $ar['top'], 
+            $ar['right'], $ar['bottom'] -$ar['top']
+        );
+        $this->drawing_area->draw(
+            new GdkRectangle(
+                $ar['left'], $ar['top'], 
+                $ar['right'], $ar['bottom'] - $ar['top']));
+    }
+    
+  
     
     
     
@@ -511,7 +623,7 @@ class PEAR_Front_Gtk_WidgetHTML {
     
     function _breakString($start,$left,$right,$string) {
          
-        $l = $this->_font->extents($string);
+        $l = $this->_fonts[$this->_font]->extents($string);
         //echo serialize($l);
         //echo "\nSTRINGLEN: $string =  {$l[2]} \n";
         if ($l[2] < ($right - $start)) {
@@ -522,7 +634,7 @@ class PEAR_Front_Gtk_WidgetHTML {
         $words = explode(" ",$string);
         foreach ($words as $w) {
          
-            $l = $this->_font->extents($buf . " " . $w);
+            $l = $this->_fonts[$this->_font]->extents($buf . " " . $w);
             if ($l[2]< ($right - $start)) {
                 $buf .= " " . $w;
                 continue;
@@ -541,13 +653,13 @@ class PEAR_Front_Gtk_WidgetHTML {
                 continue;
             }
             // its longer, add the buffer to stack, clear buffer
-            $l = $this->_font->extents($buf);
+            $l = $this->_fonts[$this->_font]->extents($buf);
             $ret[] = array($start, $l[2] ,$buf);
             $buf = $w;
             $start = $left;
         }
         if ($buf) {
-            $l = $this->_font->extents($buf);
+            $l = $this->_fonts[$this->_font]->extents($buf);
             $ret[] = array($start, $l[2] ,$buf);
         }
         return $ret;
@@ -571,44 +683,81 @@ class PEAR_Front_Gtk_WidgetHTML {
         
         //if (!@$this->_lines[$this->_line]['ascent']) $this->_lines[$this->_line]['ascent']=1;
         //if (!@$this->_lines[$this->_line]['decent']) $this->_lines[$this->_line]['decent']=5;
-        
-        if (@$this->_lines[$this->_line]['ascent'] < $this->_font->ascent ) 
-            $this->_lines[$this->_line]['ascent'] = $this->_font->ascent;
-        if (@$this->_lines[$this->_line]['descent'] < $this->_font->descent ) 
-            $this->_lines[$this->_line]['descent'] = $this->_font->descent;
+         
+        if (@$this->_lines[$this->_line]['ascent'] < $this->_fonts[$this->_font]->ascent ) 
+            $this->_lines[$this->_line]['ascent'] = $this->_fonts[$this->_font]->ascent;
+        if (@$this->_lines[$this->_line]['descent'] < $this->_fonts[$this->_font]->descent ) 
+            $this->_lines[$this->_line]['descent'] = $this->_fonts[$this->_font]->descent;
         if (!isset($this->_lines[$this->_line]['descent'])) {
-            echo serialize($this->_font->descent);
+            echo "FAILED TO FIND DESCENT {$this->_line}\n";
+            echo serialize($this->_fonts[$this->_font]->descent);
             exit;
         }
+        
         
         $this->_lines[$this->_line]['height'] = 
             $this->_lines[$this->_line]['descent'] + $this->_lines[$this->_line]['ascent'];
         
-        $this->_lines[$this->_line]['y'] = $this->_lines[$this->_line]['top'] + $this->_lines[$this->_line]['ascent'];
-        $this->_lines[$this->_line]['bottom'] = $this->_lines[$this->_line]['top'] + $this->_lines[$this->_line]['height'];
+        $this->_calcLine($this->_line);
         
         // store the active block heights....
         
-        if ($this->pass == 1) {
-            if ($id = $this->inID('TD')) 
-                $this->td[$id]['lines'][] = $this->_line;
+       
+      
+        if ($string)
             $this->_lines[$this->_line]['string'] .= $string;
-        }
+         
     }
-    function _nextLine() {    
+    
+    
+    function _calcLine($l) {
+        $this->_lines[$l]['y'] = $this->_lines[$l]['top'] + $this->_lines[$l]['ascent'];
+        $this->_lines[$l]['bottom'] = $this->_lines[$l]['top'] + $this->_lines[$l]['height'];
+    }
+    
+    function _nextLine($reason) {    
         
         $this->_line++;
         if (!isset($this->_lines[$this->_line-1]['bottom'])) {
             print_r($this->_lines);
+            echo "NO BOTTOM ON NEXT LINE";
             exit;
         }
         
-        $this->_lines[$this->_line]['top'] = $this->_lines[$this->_line-1]['bottom'];
-        $this->_lines[$this->_line]['y'] = $this->_lines[$this->_line-1]['bottom'] + 10;
-        $this->_lines[$this->_line]['string'] = '';
-        $this->_updateLine();
-        // 
+        $this->_lines[$this->_line]['left'] = $this->_lines[$this->_line-1]['left'];
+        $this->_lines[$this->_line]['right'] = $this->_lines[$this->_line-1]['right'];
+        $this->_lines[$this->_line]['x'] =$this->_lines[$this->_line]['left'];
         
+        
+        $this->_lines[$this->_line]['top'] = $this->_lines[$this->_line-1]['bottom'];
+        $this->_lines[$this->_line]['y'] = $this->_lines[$this->_line-1]['bottom'];
+        $this->_lines[$this->_line]['string'] = '';
+        $this->_lines[$this->_line]['reason'] = $reason;
+        $this->_lines[$this->_line]['ascent'] =0;
+        $this->_lines[$this->_line]['descent'] =0;
+        $this->_lines[$this->_line]['height'] =0;
+        //$this->_updateLine();
+        $this->_calcLine($this->_line);
+    
+    }
+    
+    function _TDaddLine() {
+        if ($id = $this->inID('TD')) {
+            $table = $this->inID('TABLE');
+            if ($table > $id) {
+                echo "TRIED TO ADD TD:$id to TABLE:$table";
+                return;
+            }
+            if (!isset($this->td[$id]['lines'])) {
+                print_r($this->td);
+                echo "NO TD FOR $id\n";
+                exit;
+            }
+            if (!in_array($this->_line,$this->td[$id]['lines'])) {
+                $this->td[$id]['lines'][] = $this->_line;
+                $this->td[$id]['line_items'][$this->_line] = &$this->_lines[$this->_line];
+            }
+        }
         
     
     }
@@ -629,14 +778,14 @@ class PEAR_Front_Gtk_WidgetHTML {
         $font['setwidth'] = 'normal'; 
         
         //PRE:
-        if ($this->in('PRE') || $this->in('TT') || $this->in('CODE') ) {
+        if ($this->inID('PRE') || $this->inID('TT') || $this->inID('CODE') ) {
             $font['family']  = 'courier';
             $font['space'] = 'm';
             $font['pointsize'] = 80;
         }
-        if ($this->in('B')) 
+        if ($this->inID('B')) 
             $font['weight']  = 'bold';
-        if ($this->in('I')) 
+        if ($this->inID('I')) 
             $font['slant']  = 'i';
             
         if ($v = $this->in('H')) {
@@ -645,7 +794,7 @@ class PEAR_Front_Gtk_WidgetHTML {
             // 20 * $v  would give 1=20, 2=40 .. 5=100
             // now 160-$v;; would give 1 = 140, 3=100 
             $font['weight']  = 'bold';
-            $font['pointsize'] = 145 - ($v * 15);
+            $font['pointsize'] = 180 - ($v * 20);
             //echo "setting point size = {$font['pointsize']}";
         }
             
@@ -661,7 +810,7 @@ class PEAR_Front_Gtk_WidgetHTML {
         if (!$this->_fonts[$fontname]) 
             echo "FAIL: $fontname\n";
        
-        $this->_font = &$this->_fonts[$fontname];
+        $this->_font =  $fontname;
     }
     
     function _getFontString($array) {
@@ -719,41 +868,12 @@ class PEAR_Front_Gtk_WidgetHTML {
             $this->_gcs[$bgid]->foreground =  $this->_gcs[$id]->background ;
             $this->_gcs[$bgid]->background =  $this->_gcs[$id]->foreground;
         }
-        $this->_gc = &$this->_gcs[$id];
-        $this->_bggc = &$this->_gcs[$bgid];
+        $this->_gc = $id;
+        $this->_bggc = $bgid;
         
         
     }
     
-    var $_style = NULL;
-    function _setStyle() {
-        //echo "SET: $widgetname: $fgcolor/$bgcolor ". ((int) $copy) . "\n";
-        
-        
-        $style = &new GtkStyle();
-        
-        if ($this->_fgcolor) { // set foreground color
-            $fg = &$this->_fgcolor;
-            
-            $style->fg[GTK_STATE_PRELIGHT] = $fg;
-            $style->fg[GTK_STATE_NORMAL] = $fg;
-            $style->fg[GTK_STATE_ACTIVE] = $fg;
-            $style->fg[GTK_STATE_SELECTED] = $fg;
-            $style->fg[GTK_STATE_INSENSITIVE] = $fg;
-        }
-        if ($this->_bgcolor) { // set background color
-            $bg = $this->_bgcolor;
-            $style->bg[GTK_STATE_PRELIGHT] = $bg;
-            $style->bg[GTK_STATE_NORMAL] = $bg;
-            $style->bg[GTK_STATE_ACTIVE] = $bg;
-            $style->bg[GTK_STATE_SELECTED] = $bg;
-            $style->bg[GTK_STATE_INSENSITIVE] = $bg;
-        }
-        if ($this->_font)
-            $style->font = $this->_font;
-        $this->_style = &$style;
-        
-    }
      
     
  
@@ -834,10 +954,16 @@ class PEAR_Front_Gtk_WidgetHTML {
         //$this->drawing_area->realize();
         
         
-        if (!$this->Start) {
-            $this->build(0,count($this->_tokens),1);
+        //if (!$this->Start) {
+        
+        //$this->build(0,count($this->_tokens),1);
+        $this->Start = FALSE;
+        $this->build(0,count($this->_tokens),1);
+        //$this->Start = TRUE;
+        //$this->build(85,117);
+        //$this->build(77,141);
             //$this->build(FALSE);
-        }
+        //}
         
         return true;
     }
@@ -897,6 +1023,7 @@ class PEAR_Front_Gtk_WidgetHTML {
     }
     
     function _findSubTables($pos) {
+        $pos++;
         $table[] = array();
         $c = count($this->_tokens);
         while ($pos < $c) {
@@ -907,8 +1034,8 @@ class PEAR_Front_Gtk_WidgetHTML {
             if ($this->_tokens[$pos][0] == "TABLE") 
                 $table[] = $pos;
             if ($this->_tokens[$pos][0] == "/TABLE") {
-                if (!$table) return $pos;
                 array_pop($table);
+                if (!$table) return $pos;
             }
             $pos++;
         }
@@ -919,10 +1046,10 @@ class PEAR_Front_Gtk_WidgetHTML {
     var $td; // associative array of [posid]['width'|'start']
     
     
-    function calctable($pos,$left,$right) {
-       // if ($pos ==332 )  unset($this->td);
-        //echo "START CALCTABLE $pos,$max\n";
-        // read the width if there is one?
+    function _TABLEcalc($pos) {
+        $left = $this->tables[$pos]['left'];
+        $right = $this->tables[$pos]['right'];
+
         $tableid = $pos;
         $attributes = $this->_tokens[$pos][1];
         if (preg_match("/ width\=[\"\']?(\[0-9]+)([%]*)[\"\']?/mi",' '.$attributes,$args)) {
@@ -934,10 +1061,12 @@ class PEAR_Front_Gtk_WidgetHTML {
         
         
         $table = array(); // table[row][col]
+        $cells = array();
         $totalcols= 1;
         $done = 0;
         $col =1;
         $row =0;
+        $hasCaption = 0;
         $c = count($this->_tokens);
         while ($pos < $c) {
             if (!is_array($this->_tokens[$pos])) {
@@ -945,12 +1074,31 @@ class PEAR_Front_Gtk_WidgetHTML {
                 continue;
             }
             switch ($this->_tokens[$pos][0]) {
+            
+                
                 case "TR":
                     $row++;
                     if ($col > $totalcols) $totalcols = $col-1;
                     $col = 1;
                     break;
+                    
+                case "CAPTION":
+                    $hasCaption = $pos;
+                    $table[$row][$col]['pos'] = $pos;
+                    $table[$row][$col]['span'] = 1;
+                    $table[$row][$col]['rowspan'] = 1;
+                    $this->td[$pos]['row'] = $row;
+                    $this->td[$pos]['col'] = $col;
+                    $this->td[$pos]['colspan'] = 1;
+                    $this->td[$pos]['rowspan'] = 1;
+                    $this->td[$pos]['iscaption'] = 1;
+                    $this->td[$pos]['table'] = $tableid;
+                    $this->td[$pos]['tag'] =  $this->_tokens[$pos][0];
+                    $cells[] = $pos;
+                    $row++;
+                    break;
                 case "TD";
+                case "TH";
                     
                     while (@isset($table[$row][$col]['pos'])) // find next empty col.
                         $col++;
@@ -974,20 +1122,23 @@ class PEAR_Front_Gtk_WidgetHTML {
                         $table[$row+$i][$col+$j]['pos'] = $pos;
                     
                     
-                    
+                    $this->td[$pos]['tag'] =  $this->_tokens[$pos][0];
                     $this->td[$pos]['row'] = $row;
                     $this->td[$pos]['col'] = $col;
                   
                     $this->td[$pos]['colspan'] = $span;
                     $this->td[$pos]['rowspan'] = $rowspan;
                     $this->td[$pos]['table'] = $tableid;
+                    $cells[] = $pos;
                     
                     $col += $span;
                     break;
                 case "/TR":
                     break;
                 case "TABLE":
+                    $spos = $pos;
                     $pos = $this->_findSubTables($pos); // skip sub tables
+                    //echo "SKIPPED: $spos:$pos\n";
                     break;
                 case "/TABLE":
                     $done = 1;
@@ -1001,11 +1152,26 @@ class PEAR_Front_Gtk_WidgetHTML {
         // and totalcols;
         
         // do do a guess on the stuff...
-         
+        if ($col > $totalcols) $totalcols = $col-1;
          
          
          
         if (!$totalcols) return;
+        
+        
+        if ($hasCaption) {
+            $pos = $hasCaption;
+            $row = $this->td[$pos]['row'];
+            $col = $this->td[$pos]['col'];
+            $table[$row][$col]['span'] = $totalcols;
+            $this->td[$pos]['colspan'] = $totalcols;
+            $this->td[$pos]['table'] = $tableid;
+            for ($i=1;$i<$totalcols;$i++) 
+                $table[$row][$col+$i]['pos'] = $pos;
+        }
+        
+        
+        
         $colwidth = (int) (($right-$left) / $totalcols);
         $x=$left;
         $row =0;
@@ -1038,53 +1204,74 @@ class PEAR_Front_Gtk_WidgetHTML {
         }
         //if ($tableid ==142 )  {
         //     print_r($this->td);
-        //      exit;
+        //       exit;
         //  }
-        $this->tables[$tableid]['cells'] =$table;
+        $this->tables[$tableid]['table'] =$table;
+        $this->tables[$tableid]['cells'] =$cells;
         $this->tables[$tableid]['left'] =$left;
         $this->tables[$tableid]['right'] =$right;
+        
+         
+        
     }
     
-    function _TABLErecalc($id) {
+    function _TABLErecalc($id,$end) {
         //$rowx[$row]['top'] = 
         //$rowx[$row]['bottom'] = 
         
-        $table = $this->tables[$id]['cells'];
+        $table = $this->tables[$id]['table'];
         $top = $this->tables[$id]['top'];
+        //if ($id == 85) echo "$top"; exit;
         $rows[1]['top'] = $top;
         foreach ($table as $row=>$cols) {
+            
+            // row
+            $height  = 0;
             foreach($cols as $col=>$data) {
                 $td_id = $data['pos'];
                 $this->_TDcalcHeight($td_id);
-
+                
+                // top - is it the first row
+                if (@$table[$row-1][$col]['pos'] != $td_id) 
+                    $this->td[$td_id]['top'] = $top;
+                    
                 
                 // bottom = ?
                 if (@$table[$row+1][$col]['pos'] != $data['pos']) 
-                    if (@$rows[$row]['height'] < @$this->td[$td_id]['height'])
-                        $rows[$row]['height'] = $this->td[$td_id]['height'];
+                    if ($height < @$this->td[$td_id]['height'])
+                        $height = $this->td[$td_id]['height'];
                 
-                $rows[$row]['bottom'] = $rows[$row]['top'] + $this->td[$td_id]['height'];
-                $rows[$row+1]['top'] = $rows[$row]['bottom'];
-                if (@$rows[$row]['bottom'] > @$this->tables[$id]['bottom'])
-                    $this->tables[$id]['bottom'] =  $rows[$row]['bottom'];
+                $bottom = $top + $height;
             }
+            
             // set the bottom for all cols.
             foreach($cols as $col=>$data) {
                 $td_id = $data['pos'];
-                $this->td[$td_id]['bottom']  = $rows[$row]['bottom'];
-                if (@$table[$row-1][$col]['pos'] != $data['pos']) 
-                    $this->td[$td_id]['top']  = $rows[$row]['top'];
+                
+                if (@$table[$row+1][$col]['pos'] != $td_id) 
+                    $this->td[$td_id]['bottom']  = $bottom;
+                    
+                $this->tables[$id]['table'][$row][$col]['td'] = &$this->td[$td_id];
+               
+          
             }
+            //echo "ROW:$row:TOP:$top\n";
+            $top = $bottom;
              
         }
-        //print_r($rows);
-        //exit;
+        $this->tables[$id]['height'] = $bottom - $this->tables[$id]['top'];
+        $this->tables[$id]['bottom'] = $bottom;
+        //if ($end > 160) {
+        //    print_r($this->tables);
+        //    echo "$id::$end\n";
+        //    exit;
+       // }
     }
     
     
     
     function _TDcalcHeight($id) {
-        if (@$this->td[$id]['height']) return;
+        //if ($this->td[$id]['height']) return;
         $h=0;
         foreach ($this->td[$id]['lines'] as $lineid) 
             $h += @$this->_lines[$lineid]['ascent'] + @$this->_lines[$lineid]['descent'];
@@ -1092,19 +1279,21 @@ class PEAR_Front_Gtk_WidgetHTML {
         $this->td[$id]['height'] = $h;
     }
     
-    function _drawBlock($ar) {
-        $this->_makeColors();
+    function _TABLEmovelines($table) {
         
-        gdk::draw_rectangle($this->pixmap,
-            $this->_bggc,true,    
-            $ar['left'], $ar['top'], 
-            $ar['right'], $ar['bottom']
-        );
-        $this->drawing_area->draw(
-            new GdkRectangle(
-                $ar['left'], $ar['top'], 
-                $ar['right'], $ar['bottom']));
+        $cells = $this->tables[$table]['cells'];
+        foreach($cells as $td) {
+            $lines = $this->td[$td]['lines'];
+            $top = $this->td[$td]['top'];
+            foreach($lines as $line) {
+                $this->_lines[$line]['top'] = $top;
+                $this->_calcLine($line);
+                $top = $this->_lines[$line]['bottom'];
+            }
+        }
     }
+        
+     
      
     
 }
@@ -1114,7 +1303,7 @@ class PEAR_Front_Gtk_WidgetHTML {
 dl('php_gtk.so');
 error_reporting(E_ALL);
 $t = new PEAR_Front_Gtk_WidgetHTML;
-//$t->test(dirname(__FILE__).'/tests/test3.html');
+//$t->test(dirname(__FILE__).'/tests/test6.html');
 $t->test('http://pear.php.net/manual/en/packages.templates.it.php');
 $t->tokenize();
 $t->testInterface();
