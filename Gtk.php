@@ -77,6 +77,15 @@ class PEAR_Frontend_Gtk extends PEAR
             $varname = "_widget_".$widgetname;
             $this->$varname = $this->_glade->get_widget($widgetname);
         }
+        $items = array();
+        preg_match_all('/\<handler\>([^\<]+)\<\/handler\>/',$data,$items); 
+        //print_r($items[1]);
+        foreach ($items[1] as $handler)  
+            if (method_exists($this,$handler))
+                $this->_glade->signal_connect( $handler ,array(&$this,$handler));
+
+        
+        
     }
     /**
      * the class that manages the class list
@@ -129,19 +138,7 @@ class PEAR_Frontend_Gtk extends PEAR
         $this->_widget_window->connect_after('realize',array(&$this,'_callbackWindowConfigure'));
         $this->_widget_window->connect_after('configure_event',array(&$this,'_callbackWindowConfigure'));
         
-        
-        
-        
-        $this->_widget_installer_logo = & new GtkDrawingArea();
-        $this->_widget_installer_logo->size( 486, 48);
-        
-        $this->_widget_installer_logo->connect(
-                'configure_event',array(&$this,'_callbackInstallerLogoConfigure'));        
-                
-        $this->_widget_installer_logo->connect(
-                'expose_event',array(&$this,   '_callbackInstallerLogoExpose'));
-        $this->_widget_installer_logo_holder->add($this->_widget_installer_logo);
-        $this->_widget_installer_logo->show();
+       
         
         $this->_widget_details_area->hide();
         $this->_widget_window->show();
@@ -189,6 +186,16 @@ class PEAR_Frontend_Gtk extends PEAR
         $this->_loadButton('config_button' ,        'nav_configuration.xpm');
         $this->_loadButton('documentation_button' , 'nav_documentation.xpm');
         $this->_loadButton('close_details' ,        'black_close_icon.xpm');
+
+        $this->_setStyle('package_logo','#000000','#339900',TRUE);
+        $this->_setStyle('package_logo_text','#FFFFFF','#339900'); 
+        
+        $package_logo = &new GtkPixmap(
+            $this->_pixmaps['pear.xpm'][0],
+            $this->_pixmaps['pear.xpm'][1]);
+        $this->_widget_package_logo->put($package_logo,0,0);
+        $package_logo->show();
+        
         
         /* downloding tab */
         $this->_setStyle('white_bg1','#000000','#FFFFFF',TRUE);
@@ -299,61 +306,60 @@ class PEAR_Frontend_Gtk extends PEAR
     var $_logo_pixmap; // the base to draw pixmaps onto...
     
     
+   
     
-    function _callbackInstallerLogoConfigure($widget,$event) {
-        //echo "Configure event";
-        //if (@$this->_logo_pixmap) return;
-        
-        $this->_logo_pixmap = &new GdkPixmap($widget->window,
-           $widget->allocation->width,
-							$widget->allocation->height, 
-            -1);
-	 
-        $current_style=$widget->get_style();
-        $new_style = $current_style->copy(); 
-        $new_style->bg[GTK_STATE_NORMAL]=new GdkColor('#339900'); 
-        $new_style->bg[GTK_STATE_NORMAL]=new GdkColor('#339900'); 
-        $widget->set_style($new_style);
-        
-        gdk::draw_rectangle($this->_logo_pixmap,
-            $widget->style->bg_gc[GTK_STATE_NORMAL],
-            true, 0, 0,
-            $widget->allocation->width,
-            $widget->allocation->height);
-        // draw somethin on it.
-        //$this->_initPixmaps($widget);
-          
-        //print_r(array($this->_logo_pixmap,$this->_pixmaps));
-        gdk::draw_pixmap($this->_logo_pixmap,
-            $widget->style->fg_gc[$widget->state],
-            $this->_pixmaps['installer_logo.xpm'][0],
-            0,0,
-            0,0,
-            486, 48);
-            
-        $widget->realize();  
-        return true;
-    }                  
-    
-        
-    
-    
-    
-    function _callbackInstallerLogoExpose($widget,$event) {
-        // echo "Expose event"; 
+    var $_activeDownloadSize =0;
+    var $_downloadTotal=1;
+    var $_downloadPos=0;
+    function _downloadCallback($msg,  $params) {
+         
+        switch ($msg) {
+            case 'setup':
+                return;
+            case 'saveas':
+                $this->_widget_downloading_filename->set_text("Downloading {$params}");
+                $this->_widget_downloading_total_progressbar->set_percentage($this->_downloadPos/$this->_downloadTotal);
+                $this->_downloadPos++; 
+                $this->_widget_downloading_total->set_text("Total {$this->_downloadPos}/{$this->_downloadTotal}");
+                while(gtk::events_pending()) gtk::main_iteration();
        
-        gdk::draw_pixmap($widget->window,
-            $widget->style->fg_gc[$widget->state],
-            $this->_logo_pixmap,
-            $event->area->x, $event->area->y,
-            $event->area->x, $event->area->y,
-            $event->area->width, $event->area->height);
-        return false;
+                return;
+            case 'start':
+                $this->_activeDownloadSize = $params;
+                $this->_widget_downloading_file_progressbar->set_percentage(0);
+                while(gtk::events_pending()) gtk::main_iteration();
+                return;
+            case 'bytesread':
+                $this->_widget_downloading_file_progressbar->set_percentage($params / $this->_activeDownloadSize);
+                while(gtk::events_pending()) gtk::main_iteration();
+                return;
+            case 'done':
+                
+                $this->_widget_downloading_total_progressbar->set_percentage($this->_downloadPos/$this->_downloadTotal);
+               
+            default:
+                if (is_object($params)) $params="OBJECT";
+                echo "MSG: $msg ". serialize($params) . "\n";
+        }
+        
     }
     
+
+
+    function on_expand_all_activate() {
+        $this->_package_list->widget->expand_recursive();
+    }
+
+    function on_collapse_all_activate() {
+        $this->_package_list->widget->collapse_recursive();
+    }
     
-
-
+    function on_quit() {
+        gtk::main_quit();
+        exit;
+    }
+    
+    //-------------------------- BASE Installer methods --------------------------
 
     // {{{ displayLine(text)
 
@@ -372,7 +378,7 @@ class PEAR_Frontend_Gtk extends PEAR
 
     function displayError($eobj)
     {
-        echo "ERROR:";
+        return $this->displayLine($eobj->getMessage()); 
         
     }
 
@@ -381,9 +387,8 @@ class PEAR_Frontend_Gtk extends PEAR
 
     function displayFatalError($eobj)
     {
-        echo "FATAL ERROR";
-        echo serialize($eobj);
-        exit;
+        $this->displayError($eobj);
+        //exit(1);
     }
 
     // }}}
