@@ -130,6 +130,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                             $this->tables[$pos]['pos'] = $pos;
                             $this->tables[$pos]['left']  =  $this->_lines[$this->_line]['left']; 
                             $this->tables[$pos]['right'] =  $this->_lines[$this->_line]['right']; 
+                            $this->tables[$pos]['startright'] =  $this->_lines[$this->_line]['right']; 
                             $this->tables[$pos]['top']   = $this->_lines[$this->_line]['top']; 
                             $this->_nextLine('TABLE'); // new line object that contains the table information.
                             $this->_TDaddLine();
@@ -187,7 +188,10 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                             $this->_lines[$this->_line]['top'] = $this->tables[$table]['bottom']; 
                             // move X xursor.
                             $this->_lines[$this->_line]['left'] = $this->tables[$table]['left']; 
-                            $this->_lines[$this->_line]['right'] = $this->tables[$table]['right']; 
+                            
+                            $this->_lines[$this->_line]['right'] = $this->tables[$table]['startright'];
+                            
+                            
                             $this->_lines[$this->_line]['x'] = $this->tables[$table]['left']; 
                             
                             
@@ -321,7 +325,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
     }
     
     /*-----------------------------STACK STUFF--------------------------------*/
-    var $check = "PRE";
+    var $check = "";
     var $_states = array(); // array of pos'id => various data!!!
     function pushState($id) {
         foreach(array('_left','_right') as $k) 
@@ -735,7 +739,7 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         
         //PRE:
         if ($this->inID('PRE') || $this->inID('TT') || $this->inID('CODE') ) {
-            echo "IN PRE?" . $this->inID('PRE') . "\n";
+            //echo "IN PRE?" . $this->inID('PRE') . "\n";
             $font['family']  = 'courier';
             $font['space'] = 'm';
             $font['pointsize'] = 80;
@@ -979,10 +983,13 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         $right = $this->tables[$pos]['right'];
 
         $tableid = $pos;
-         
-        if (preg_match("/ width\=[\"\']?(\[0-9]+)([%]*)[\"\']?/mi",' '.$this->_tokens[$pos][1],$args)) {
-            $right = $left + $args[1];
-            if ($args[2]) $right = (int) (0.01 * $args[1]  * ($right - $left));
+        if (preg_match("/\swidth\=[\"\']?([0-9]+)([%]*)[\"\']?/mi",' '.$this->_tokens[$pos][1],$args)) {
+            if ($args[2]) { 
+                $right = (int) (0.01 * $args[1]  * ($right - $left));
+            } else {
+                $right = $left + $args[1];
+            }
+
         }
         
         $pos++;
@@ -1038,9 +1045,12 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                     $span =1;
                     $rowspan =1;
                     $args = array();
-                    if (!@$colsizes[$col]  && preg_match("/ width\=[\"\']?(\[0-9]+)([%]*)[\"\']?/mi",' '.@$this->_tokens[$pos][1],$args)) {
-                        $colsizes[$col] = $args[1];
-                        if ($args[2]) $colsizes[$col] = (int) (0.01 * $args[1]  * ($right - $left));
+                    if (!@$colsizes[$col]  && preg_match("/\swidth\=[\"\']?([0-9]+)([%]*)[\"\']?/mi",' '.@$this->_tokens[$pos][1],$args)) {
+                        if ($args[2]) { 
+                            $colsizes[$col] = (int) (0.01 * $args[1]  * ($right - $left));
+                        } else {
+                            $colsizes[$col] = $args[1];
+                        }
                     }
                     
                     
@@ -1182,13 +1192,13 @@ class PEAR_Frontend_Gtk_WidgetHTML {
         if ($empty)  {
             $default = (int) ($available / $empty); 
         } else {
-            $factor = $sum/$width;
+            $factor = $width/$sum;
         }
         for ($i=1;$i<($total+1);$i++) {
             if (@$cols[$i]) {
-                $res[$i] = $cols[$i] * $factor;
+                $res[$i] = (int) ($cols[$i] * $factor);
             } else {
-                $res[$i] = $default * $factor;
+                $res[$i] = (int) ($default * $factor);
             }
         }
         /*
@@ -1200,6 +1210,8 @@ class PEAR_Frontend_Gtk_WidgetHTML {
                 'result' =>$res,
                 'available' => $available,
                 'empty' => $empty,
+                'factor' => $factor,
+                'sum' => $sum
                 ));
         exit;
         */
@@ -1307,6 +1319,7 @@ dl('php_gtk.so');
 error_reporting(E_ALL);
 $t = new PEAR_Frontend_Gtk_WidgetHTML;
  $t->test(dirname(__FILE__).'/tests/test3.html');
+ $t->test(dirname(__FILE__).'/tests/packages.templates.it.html');
 //$t->test('http://pear.php.net/manual/en/packages.templates.it.php');
 $t->tokenize();
 $t->testInterface();
