@@ -28,7 +28,7 @@
     <filelist>
       <dir name="/" baseinstalldir="PEAR/Frontend">
       	<file role="php">Gtk.php</file>
-      	<dir name="Gtk" role="php">
+      	<dir name="Gtk" role="php" baseinstalldir="PEAR/Frontend/Gtk">
             <file role="php">Config.php</file>
             <file role="php">DirSelect.php</file>
 	    <file role="php">Documentation.php</file>
@@ -40,7 +40,7 @@
             <file role="php">WidgetHTML.php</file>
             <file role="php">installer.glade</file>
            
-           <dir name="xpm" role="php">
+           <dir name="xpm" role="php" baseinstalldir="PEAR/Frontend/Gtk/xpm">
 	     <file role="php">black_close_icon.xpm</file>
              <file role="php">check_no.xpm</file>
              <file role="php">check_yes.xpm</file>
@@ -61,6 +61,13 @@
     </filelist>
   </release>
   <changelog>
+    <release>
+      <version>0.2</version>
+      <date>2002-06-13</date>
+      <notes>Snapshot - package problems being worked on.</notes>
+      <state>snapshot</state>
+    </release>
+  
     <release>
       <version>0.1</version>
       <date>2002-06-13</date>
