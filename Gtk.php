@@ -213,7 +213,21 @@ class PEAR_Frontend_Gtk extends PEAR
         $this->_widget_downloading_logo->put($installer_logo,0,0);
         $installer_logo->show();
         
+        /* configuration loading */
+          
+        $this->_clearConfig();
+        $cmd = PEAR_Command::factory('config-show',$this->config);
+        $cmd->ui = &$this;
+        $cmd->run('config-show' ,'', array());
         
+        $this->_setStyle('config_logo','#000000','#339900',TRUE);
+        $this->_setStyle('config_logo_text','#FFFFFF','#339900'); 
+        
+        $config_logo = &new GtkPixmap(
+            $this->_pixmaps['pear.xpm'][0],
+            $this->_pixmaps['pear.xpm'][1]);
+        $this->_widget_config_logo->put($config_logo,0,0);
+        $config_logo->show();
          
     }
     /*
@@ -305,8 +319,141 @@ class PEAR_Frontend_Gtk extends PEAR
     
     var $_logo_pixmap; // the base to draw pixmaps onto...
     
+
+
+
     
-   
+
+
+    function _buildConfig(&$array) {
+        if (!$array) return;
+        foreach ($array as $v) 
+            $this->_buildConfigItem($v[0],$v[1]);
+
+    }
+    
+    function _buildConfigItem($k,$v) {
+        echo "BUIDLING CONF ITME $k $v\n";
+        $group = $this->config->getGroup($k);
+        $gtktable =  $this->_getConfigTab($group);
+        $prompt = $this->config->getPrompt($k);
+        $gtklabel = &new GtkLabel();
+        $gtklabel->set_text($prompt);
+        $gtklabel->set_justify(GTK_JUSTIFY_LEFT);
+        $gtklabel->set_alignment(0.0, 0.5);
+        $gtklabel->show();
+        $r = $gtktable->nrows;
+        $gtktable->attach($gtklabel, 0, 1, $r, $r+1, GTK_FILL,GTK_FILL);
+        if ($v == '<not set>') 
+            $v = '';
+        
+        $type = $this->config->getType($k);
+        switch ($type) {
+            case 'string':
+            case 'password':
+            case 'int': // umask: should really be checkboxes..
+                $gtkentry = &new GtkEntry();
+                $gtkentry->set_text($v);
+                
+                $gtkentry->connect_object_after('enter_notify_event',
+                    array(&$this,'_setConfigHelp'),$this->config->getDocs($k));
+                
+                if ($type == 'password')
+                    $gtkentry->set_visibility(FALSE);
+                $gtkentry->show();
+                $gtktable->attach($gtkentry, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
+                break;
+            case 'directory':    
+                $gtkentry = &new GtkEntry();
+                $gtkentry->set_text($v);
+                $gtkentry->connect_object_after('enter_notify_event',
+                    array(&$this,'_setConfigHelp'),$this->config->getDocs($k));
+              
+                $gtkentry->show();
+                $gtktable->attach($gtkentry, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
+                $gtkbutton = &new GtkButton('...');
+                $gtkbutton->show();
+                $gtktable->attach($gtkbutton, 2, 3, $r, $r+1, GTK_SHRINK,GTK_SHRINK);
+                break;
+            case 'set':
+                $options = $this->config->getSetValues($k);
+                $gtkmenu = &new GtkMenu();
+                $items = array();
+                $sel = 0;
+                foreach($options as $i=>$option) {
+                    $items[$i] = &new GtkMenuItem($option);
+                    //$items[$i]->connect('activate', 'echo_activated', $labels[$i], $pos[$i], 
+                    $gtkmenu->append($items[$i]);
+                    if ($option == $v) 
+                        $sel = $i;
+                }
+                $gtkmenu->set_active($sel);
+                $gtkmenu->show_all();
+                $gtkoptionmenu = &new GtkOptionMenu();
+                $gtkoptionmenu->set_menu($gtkmenu);
+                $gtkoptionmenu->connect_object_after('enter_notify_event',
+                    array(&$this,'_setConfigHelp'),$this->config->getDocs($k));
+              
+                $gtkoptionmenu->show();
+                $gtktable->attach($gtkoptionmenu, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
+                break;
+            // debug: shourd  really be 
+            case 'integer': // debug : should really be a set?
+                $gtkadj = &new GtkAdjustment($v, 1.0, 3.0, 1.0, 1.0, 0.0);
+                $gtkspinbutton = &new GtkSpinButton($gtkadj);
+                $gtkspinbutton->show();
+                $gtkspinbutton->connect_object_after('enter_notify_event',
+                    array(&$this,'_setConfigHelp'),$this->config->getDocs($k));
+            
+                $gtktable->attach($gtkspinbutton, 1, 2, $r, $r+1, GTK_FILL|GTK_EXPAND,GTK_FILL);
+                break;
+            default:
+                echo "$prompt : ". $this->config->getType($k) . "\n";    
+        }
+        
+    }
+  
+    function _setConfigHelp($event,$string) {
+        $this->_widget_config_help->set_text($string);
+    }
+  
+    var $_configTabs = array(); // associative array of configGroup -> GtkTable
+ 
+    function &_getConfigTab($group) {
+        if (@$this->_configTabs[$group]) 
+            return $this->_configTabs[$group];
+        $this->_configTabs[$group] = &new GtkTable();
+        $this->_configTabs[$group]->set_row_spacings(10);
+        $this->_configTabs[$group]->set_col_spacings(10);
+        $this->_configTabs[$group]->set_border_width(15);
+        $this->_configTabs[$group]->show();
+        $gtklabel = &new GtkLabel($group);
+
+        $gtklabel->show();
+        $this->_widget_config_notebook->append_page($this->_configTabs[$group],$gtklabel);
+        return $this->_configTabs[$group];
+    }
+
+    function _clearConfig() {
+        if ($this->_configTabs) 
+            foreach (array_keys($this->_configTabs) as $k) {
+                $page = $this->_widget_config_notebook->page_num($this->_configTabs[$k]);
+                $this->_widget_config_notebook->remove_page($page);
+                $this->_configTabs[$k]->destroy();
+            }
+        
+        // delete any other pages;
+        if ($widget = $this->_widget_config_notebook->get_nth_page(0)) {
+            $this->_widget_config_notebook->remove_page(0);
+            $widget->destroy();
+        }
+    }
+    function _callbackShowInstaller() {
+        $this->_widget_pages->set_page(0);
+    }
+    function _callbackShowConfig() {
+        $this->_widget_pages->set_page(2);
+    }
     
     var $_activeDownloadSize =0;
     var $_downloadTotal=1;
@@ -358,9 +505,23 @@ class PEAR_Frontend_Gtk extends PEAR
         gtk::main_quit();
         exit;
     }
-    
-    //-------------------------- BASE Installer methods --------------------------
 
+
+
+
+    //-------------------------- BASE Installer methods --------------------------
+    
+    function outputData($data,$command ){
+        switch ($command) {
+            case 'config-show':
+                $this->_buildConfig($data['data']);
+                break;
+            default:
+                echo "COMMAND : $command\n";
+                echo "DATA: ".serialize($data)."\n";
+        }
+    }
+    
     // {{{ displayLine(text)
 
     function displayLine($text)

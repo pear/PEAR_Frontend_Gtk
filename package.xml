@@ -31,18 +31,21 @@
       	<dir name="Gtk">
            <file role="php">Packages.php</file>
            <file role="php">Summary.php</file>
+	   <file role="php">Install.php</file>
   	       <file role="php">installer.glade</file>
            <dir name="xpm">
+	     <file role="php">black_close_icon.xpm</file>
              <file role="php">check_no.xpm</file>
              <file role="php">check_yes.xpm</file>
-  	         <file role="php">folder_closed.xpm</file>
-  	         <file role="php">folder_open.xpm</file>
+	     <file role="php">downloading_image.xpm</file>
+  	     <file role="php">folder_closed.xpm</file>
+  	     <file role="php">folder_open.xpm</file>
              <file role="php">info_icon.xpm</file>
-             <file role="php">installer_logo.xpm</file>
-  	         <file role="php">nav_configuration.xpm</file>
-  	         <file role="php">nav_documentation.xpm</file>        
-   	         <file role="php">nav_installer.xpm</file>          
-             <file role="php">package.xpm</file>                      
+	     <file role="php">nav_configuration.xpm</file>
+  	     <file role="php">nav_documentation.xpm</file>        
+   	     <file role="php">nav_installer.xpm</file>          
+             <file role="php">package.xpm</file>   
+	    <file role="php">pear.xpm</file>                
            </dir> 
         </dir> 
       </dir>	
