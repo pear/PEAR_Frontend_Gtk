@@ -14,17 +14,22 @@
       <email>alan@akbkhome.com</email>
     </maintainer>
     <maintainer>
+      <user>cellog</user>
+      <role>developer</role>
+      <name>Greg Beaver</name>
+      <email>cellog@php.net</email>
+    </maintainer>
+    <maintainer>
       <user>ssb</user>
       <role>helper</role>
-      <name>Stig Sæther Bakken</name>
+      <name>Stig Bakken</name>
       <email>stig@php.net</email>
     </maintainer>
   </maintainers>
    <release>
-      <version>0.3</version>
-      <date>2002-07-25</date>
-      <notes>Attempt to fix package file so it installs,
-           some of the warnings have been fixed</notes>
+      <version>0.4.0</version>
+      <date>2005-02-01</date>
+      <notes>Implement channels, support PEAR 1.4.0</notes>
       <state>beta</state>
     <filelist>
       <dir name="/" baseinstalldir="PEAR/Frontend">

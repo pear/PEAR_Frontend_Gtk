@@ -57,11 +57,34 @@ class PEAR_Frontend_Gtk_PackageData {
     
     function &staticNewFromArray($array) {
         
+        // convert package.xml 2.0 to package.xml 1.0 (sort of)
+        if (isset($array['xsdversion']) && $array['xsdversion'] == '2.0') {
+            require_once 'PEAR/PackageFile/v2.php';
+            $v2 = &new PEAR_PackageFile_v2;
+            $v2->setConfig($this->ui->config);
+            unset($array['old']);
+            unset($array['xsdversion']);
+            unset($array['filelist']);
+            unset($array['dirtree']);
+            $v2->fromArray($array);
+            if (!$v2->validate()) {
+                foreach ($v2->getValidationWarnings() as $warning) {
+                    var_dump($warning['message']);
+                }
+            }
+            $v2g = &$v2->getDefaultGenerator();
+            $com = new PEAR_Common;
+            var_dump($v2g->toXml());
+            $array = $com->infoFromString($v2g->toXml());
+        }
         $t = new PEAR_Frontend_Gtk_PackageData;
         foreach($array as $k=>$v) {
              
              //echo "SETTING $k to $v\n";
             $t->$k = $v;
+        }
+        if (isset($t->package)) {
+            $t->name = $t->package;
         }
         return $t;
     }
@@ -152,10 +175,7 @@ class PEAR_Frontend_Gtk_PackageData {
     
     function doQueue() {
         $cmd = PEAR_Command::factory('install',$this->ui->config);
-        if ($this->QueueInstall && !$this->isInstalled)  {
-            $cmd->run('install' ,'', array($this->name));
-            return;
-        } else if ($this->QueueInstall) {
+        if ($this->QueueInstall) {
             $cmd->run('upgrade' ,'', array($this->name));
             return;
         }

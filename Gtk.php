@@ -19,7 +19,7 @@
   $Id$
 */
 
-require_once "PEAR.php";
+require_once "PEAR/Frontend.php";
 require_once "PEAR/Frontend/Gtk/Packages.php";
 require_once "PEAR/Frontend/Gtk/Summary.php";
 require_once "PEAR/Frontend/Gtk/Install.php";
@@ -27,7 +27,6 @@ require_once "PEAR/Frontend/Gtk/Config.php";
 require_once "PEAR/Frontend/Gtk/DirSelect.php";
 require_once "PEAR/Frontend/Gtk/Info.php";
 require_once "PEAR/Frontend/Gtk/Documentation.php";
-
 /**
  * Core Gtk Frontend Class
  * All the real work is done in the child classes (Gtk/*.php)
@@ -35,7 +34,7 @@ require_once "PEAR/Frontend/Gtk/Documentation.php";
  * @author Alan Knowles <alan@akbkhome.com>
  */
 
-class PEAR_Frontend_Gtk extends PEAR
+class PEAR_Frontend_Gtk extends PEAR_Frontend
 {
     // {{{ properties
 
@@ -80,7 +79,12 @@ class PEAR_Frontend_Gtk extends PEAR
             dl('php_gtk.' . (OS_WINDOWS ? 'dll' : 'so'));
         }
         //echo "LOADED?";
-        $this->config = &PEAR_Config::singleton('','');
+    }
+    // }}}
+    
+    function setConfig(&$config)
+    {
+        $this->config = &$config;
         $this->_summary      = &new PEAR_Frontend_Gtk_Summary($this);
         $this->_install      = &new PEAR_Frontend_Gtk_Install($this);
         $this->_packages     = &new PEAR_Frontend_Gtk_Packages($this);
@@ -89,9 +93,9 @@ class PEAR_Frontend_Gtk extends PEAR
         $this->_info         = &new PEAR_Frontend_Gtk_Info($this);
         $this->_documentation= &new PEAR_Frontend_Gtk_Documentation($this);
         $this->_loadGlade();
-   $this->_initInterface();
+        $this->_initInterface();
     }
-    // }}}
+
     /**
     * Load the Glade file (and automake widget vars and connect signals)
     *
@@ -402,6 +406,7 @@ class PEAR_Frontend_Gtk extends PEAR
             //$newstyle->bg_pixmap=NULL;
         }
         if ($bgcolor) { // set background color
+
             $bg = &new GdkColor($bgcolor);
             $newstyle->bg[GTK_STATE_PRELIGHT] = $bg;
             $newstyle->bg[GTK_STATE_NORMAL] = $bg;

@@ -110,12 +110,11 @@ class PEAR_Frontend_Gtk_Packages {
     */
     function _loadLocalPackages () {
         clearstatcache();
-        $reg = new PEAR_Registry($this->ui->config->get('php_dir'));
+        $reg = &$this->ui->config->getRegistry();
         $installed = $reg->packageInfo();
         $this->_localPackageCache = array();
         foreach($installed as $packagear) {
             $package = PEAR_Frontend_Gtk_PackageData::staticNewFromArray($packagear);
-            $package->name = $package->package;
             $this->_localPackageCache[] = $package;
         }
         
@@ -129,7 +128,7 @@ class PEAR_Frontend_Gtk_Packages {
         $options = false;
         if ($this->ui->config->get('preferred_state') == 'stable')
             $options = true;
-        $remote = $r->call('package.listAll', $options);
+        $remote = $r->call('package.listAll', $options, $options, true);
         if (PEAR::isError($remote)) {
             $this->ui->displayFatalError($remote);
             return;
