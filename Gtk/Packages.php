@@ -129,7 +129,7 @@ class PEAR_Frontend_Gtk_Packages {
         $options = false;
         if ($this->ui->config->get('preferred_state') == 'stable')
             $options = true;
-        $remote = $r->call('package.listAll', false);
+        $remote = $r->call('package.listAll', $options);
         if (PEAR::isError($remote)) {
             $this->ui->displayFatalError($remote);
             return;
